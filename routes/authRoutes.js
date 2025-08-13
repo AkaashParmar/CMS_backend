@@ -3,6 +3,7 @@ import {
   register,
   login,
   createCompanyAdmin,
+  createUserByCompanyAdmin,
   forgotPassword,
 } from "../controllers/authController.js";
 import authenticate from "../middleware/authmiddleware.js";
@@ -21,6 +22,13 @@ router.post(
   authenticate,
   authorizeRoles("superAdmin"),
   createCompanyAdmin
+);
+
+router.post(
+  "/create-user",
+  authenticate,
+  authorizeRoles("companyAdmin"),
+  createUserByCompanyAdmin
 );
 
 //this is for both(superAdmin and companyAdmin)

@@ -1,7 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import crypto from 'crypto';
+import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
 
 const register = async (req, res) => {
@@ -117,5 +117,58 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+// Create user for doctor, labTechnician, patient, billingOfficer (only by companyAdmin)
+const createUserByCompanyAdmin = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
 
-export { register, login, createCompanyAdmin, forgotPassword };
+    // Allowed roles only
+    const allowedRoles = [
+      "doctor",
+      "labTechnician",
+      "patient",
+      "billingOfficer",
+    ];
+    if (!allowedRoles.includes(role)) {
+      return res
+        .status(400)
+        .json({
+          msg: "Invalid role. Allowed roles are doctor, labTechnician, patient, billingOfficer",
+        });
+    }
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ msg: "User already exists with this email" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+    });
+
+    res.status(201).json({
+      msg: `${role} created successfully`,
+      userId: newUser._id,
+    });
+  } catch (err) {
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+export {
+  register,
+  login,
+  createCompanyAdmin,
+  forgotPassword,
+  createUserByCompanyAdmin,
+};
