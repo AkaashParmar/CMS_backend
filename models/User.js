@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema(
         "doctor",
         "labTechnician",
         "patient",
-        "billingOfficer",
+        "accountant",
       ],
       required: true,
     },

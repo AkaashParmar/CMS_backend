@@ -67,7 +67,7 @@ const login = async (req, res) => {
 };
 
 
-// ✅ NEW: Create companyAdmin (accessible only by superAdmin)
+// Create companyAdmin (accessible only by superAdmin)
 const createCompanyAdmin = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -122,7 +122,7 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// Create user for doctor, labTechnician, patient, billingOfficer (only by companyAdmin)
+// Create user for doctor, labTechnician, patient, accountant (only by companyAdmin)
 const createUserByCompanyAdmin = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -132,13 +132,13 @@ const createUserByCompanyAdmin = async (req, res) => {
       "doctor",
       "labTechnician",
       "patient",
-      "billingOfficer",
+      "accountant",
     ];
     if (!allowedRoles.includes(role)) {
       return res
         .status(400)
         .json({
-          msg: "Invalid role. Allowed roles are doctor, labTechnician, patient, billingOfficer",
+          msg: "Invalid role. Allowed roles are doctor, labTechnician, patient, accountant",
         });
     }
 
