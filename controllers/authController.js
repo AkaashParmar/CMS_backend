@@ -37,20 +37,24 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: "Invalid credentials" });
+    // find user by email, role
+    const user = await User.findOne({ email, role });
+    if (!user) {
+      return res.status(400).json({ msg: "Invalid email, role, or password" });
+    }
 
+    // check password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
-
+    if (!isMatch) {
+      return res.status(400).json({ msg: "Invalid email, role, or password" });
+    }
+    
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
-      {
-        expiresIn: "1d",
-      }
+      { expiresIn: "1d" }
     );
 
     res.status(200).json({
@@ -61,6 +65,7 @@ const login = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
+
 
 // ✅ NEW: Create companyAdmin (accessible only by superAdmin)
 const createCompanyAdmin = async (req, res) => {
