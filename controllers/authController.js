@@ -3,17 +3,19 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
+import cloudinary from "../config/cloudinary-config.js";
+import fs from "fs";
 
 const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
-    // ✅ Only allow superAdmin registration
+    // Only allow superAdmin registration
     if (role !== "superAdmin") {
       return res.status(403).json({ msg: "Only superAdmin can self-register" });
     }
 
-    // ✅ Optional: allow only 1 superAdmin in the system
+    // allow only 1 superAdmin in the system
     const existingSuperAdmin = await User.findOne({ role: "superAdmin" });
     if (existingSuperAdmin) {
       return res
@@ -50,7 +52,7 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ msg: "Invalid email, role, or password" });
     }
-    
+
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -65,7 +67,6 @@ const login = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
-
 
 // Create companyAdmin (accessible only by superAdmin)
 const createCompanyAdmin = async (req, res) => {
@@ -125,21 +126,14 @@ const forgotPassword = async (req, res) => {
 // Create user for doctor, labTechnician, patient, accountant (only by companyAdmin)
 const createUserByCompanyAdmin = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, ...profileData } = req.body;
 
     // Allowed roles only
-    const allowedRoles = [
-      "doctor",
-      "labTechnician",
-      "patient",
-      "accountant",
-    ];
+    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
     if (!allowedRoles.includes(role)) {
-      return res
-        .status(400)
-        .json({
-          msg: "Invalid role. Allowed roles are doctor, labTechnician, patient, accountant",
-        });
+      return res.status(400).json({
+        msg: "Invalid role. Allowed roles are doctor, labTechnician, patient, accountant",
+      });
     }
 
     // Check if email already exists
@@ -153,20 +147,100 @@ const createUserByCompanyAdmin = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
+    // Prepare profile data
+    let profile = { ...profileData };
+
+    // Cloudinary Upload for photo
+    if (req.file && req.file.path) {
+      const resultCloud = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profiles",
+      });
+
+      // Delete local temp file after upload
+      fs.unlinkSync(req.file.path);
+
+      profile.photo = resultCloud.secure_url;
+    }
+
+    // Create new user with profile
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
       role,
+      profile,
     });
 
     res.status(201).json({
-      msg: `${role} created successfully`,
-      userId: newUser._id,
+      msg: `${role} created successfully with profile`,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        profile: newUser.profile,
+      },
     });
   } catch (err) {
+    console.error("Create user error:", err);
     res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    if (
+      !["doctor", "labTechnician", "patient", "accountant"].includes(user.role)
+    ) {
+      return res.status(403).json({ msg: "Not authorized to update profile" });
+    }
+
+    // Pick fields separately
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      gender,
+      dob,
+      department,
+      ...profileFields
+    } = req.body;
+
+    // Update root-level fields
+    if (fullName) user.fullName = fullName;
+    if (email) user.email = email;
+    if (phoneNumber) user.phoneNumber = phoneNumber;
+    if (gender) user.gender = gender;
+    if (dob) user.dob = dob;
+    if (department) user.department = department;
+
+    // Update nested profile fields
+    user.profile = { ...user.profile, ...profileFields };
+
+    // Cloudinary Upload
+    if (req.file && req.file.path) {
+      const resultCloud = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profiles",
+      });
+
+      fs.unlinkSync(req.file.path);
+
+      user.profile.photo = resultCloud.secure_url;
+    }
+
+    await user.save();
+
+    res.json({ msg: "Profile updated successfully", user });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ msg: err.message });
   }
 };
 
@@ -176,4 +250,5 @@ export {
   createCompanyAdmin,
   forgotPassword,
   createUserByCompanyAdmin,
+  updateProfile,
 };

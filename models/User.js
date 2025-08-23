@@ -24,6 +24,49 @@ const userSchema = new mongoose.Schema(
       ],
       required: true,
     },
+
+    // Extra fields for EditProfile
+    profile: {
+      dob: Date,
+      placeOfBirth: String,
+      gender: String,
+      phoneNumber: String,
+      emergencyPhoneNumber: String,
+
+      // PERSONAL INFO
+      showPersonalInfo: { type: String, enum: ["yes", "no"], default: "no" },
+      religion: String,
+      nationality: String,
+      homeAddress: String,
+      spouseName: String,
+      spousePhone: String,
+      fatherName: String,
+      fatherPhone: String,
+      motherName: String,
+      motherPhone: String,
+
+      // EDUCATION
+      hasEducationalInfo: { type: String, enum: ["yes", "no"], default: "no" },
+      educationLevel: String,
+      institutionName: String,
+      graduationYear: String,
+      fieldOfStudy: String,
+
+      // ACCOUNT INFO
+      hasAccountInfo: { type: String, enum: ["yes", "no"], default: "no" },
+      accountNumber: String,
+      bankName: String,
+      accountType: String,
+      accountStatus: String,
+
+      // USER ACCESS CONTROL
+      accessRole: String,
+      accessStatus: String,
+
+      // SYSTEM ACCOUNT
+      photo: String, // store image URL (Cloudinary)
+    },
+
     resetPasswordToken: String,
     resetPasswordExpires: Date,
   },
@@ -31,5 +74,4 @@ const userSchema = new mongoose.Schema(
 );
 
 const User = mongoose.model("User", userSchema);
-
 export default User;

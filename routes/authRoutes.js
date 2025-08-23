@@ -5,9 +5,11 @@ import {
   createCompanyAdmin,
   createUserByCompanyAdmin,
   forgotPassword,
+  updateProfile,
 } from "../controllers/authController.js";
 import authenticate from "../middleware/authmiddleware.js";
 import authorizeRoles from "../middleware/authorizeRolemiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -26,10 +28,13 @@ router.post(
 
 router.post(
   "/create-user",
+  upload.single("photo"),
   authenticate,
-  authorizeRoles("companyAdmin"),
+  authorizeRoles(["companyAdmin", "doctor"]),
   createUserByCompanyAdmin
 );
+
+router.put("/updateProfile", authenticate, updateProfile);
 
 //this is for both(superAdmin and companyAdmin)
 router.post("/forgot-password", forgotPassword);
