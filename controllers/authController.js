@@ -104,20 +104,51 @@ const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
-
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    const token = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.otp = otp;
+    user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
-    const resetURL = `http://localhost:5173/reset-password/${token}`;
-    const message = `Hello ${user.name},\n\nYou requested a password reset. Click here to reset your password:\n\n${resetURL}\n\nIf you didn't request this, ignore this email.`;
+    const message = `Hello ${user.name},\n\nYour OTP for password reset is: ${otp}. It is valid for 10 minutes.\n\nIf you didn't request this, ignore this email.`;
 
-    await sendEmail(user.email, "Password Reset Request", message);
+    await sendEmail(user.email, "Password Reset OTP", message);
 
-    res.status(200).json({ msg: "Password reset link sent to your email" });
+    res.status(200).json({ msg: "OTP sent to your email" });
+  } catch (err) {
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+const resetPasswordWithOTP = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    if (!user.otp || user.otp !== otp) {
+      return res.status(400).json({ msg: "Invalid OTP" });
+    }
+
+    if (user.otpExpires < Date.now()) {
+      return res.status(400).json({ msg: "OTP expired" });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+
+    // Clear OTP fields
+    user.otp = undefined;
+    user.otpExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({ msg: "Password reset successfully" });
   } catch (err) {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
@@ -308,6 +339,7 @@ export {
   login,
   createCompanyAdmin,
   forgotPassword,
+  resetPasswordWithOTP,
   createUserByCompanyAdmin,
   getUsersByCompanyAdmin,
   getUserProfileById,
