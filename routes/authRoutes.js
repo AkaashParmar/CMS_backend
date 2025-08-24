@@ -4,6 +4,8 @@ import {
   login,
   createCompanyAdmin,
   createUserByCompanyAdmin,
+  getUsersByCompanyAdmin,
+  getUserProfileById,
   forgotPassword,
   updateProfile,
 } from "../controllers/authController.js";
@@ -33,6 +35,9 @@ router.post(
   authorizeRoles(["companyAdmin", "doctor"]),
   createUserByCompanyAdmin
 );
+
+router.get("/getProfile", authenticate, getUsersByCompanyAdmin);
+router.get("/getProfile/:id", authenticate, getUserProfileById);
 
 router.put("/updateProfile", authenticate, updateProfile);
 

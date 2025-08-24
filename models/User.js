@@ -25,6 +25,8 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
     // Extra fields for EditProfile
     profile: {
       dob: Date,
@@ -32,9 +34,6 @@ const userSchema = new mongoose.Schema(
       gender: String,
       phoneNumber: String,
       emergencyPhoneNumber: String,
-
-      // PERSONAL INFO
-      showPersonalInfo: { type: String, enum: ["yes", "no"], default: "no" },
       religion: String,
       nationality: String,
       homeAddress: String,
@@ -44,27 +43,17 @@ const userSchema = new mongoose.Schema(
       fatherPhone: String,
       motherName: String,
       motherPhone: String,
-
-      // EDUCATION
-      hasEducationalInfo: { type: String, enum: ["yes", "no"], default: "no" },
       educationLevel: String,
       institutionName: String,
       graduationYear: String,
       fieldOfStudy: String,
-
-      // ACCOUNT INFO
-      hasAccountInfo: { type: String, enum: ["yes", "no"], default: "no" },
       accountNumber: String,
       bankName: String,
       accountType: String,
       accountStatus: String,
-
-      // USER ACCESS CONTROL
       accessRole: String,
       accessStatus: String,
-
-      // SYSTEM ACCOUNT
-      photo: String, // store image URL (Cloudinary)
+      photo: String,
     },
 
     resetPasswordToken: String,
