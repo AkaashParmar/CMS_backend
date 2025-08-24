@@ -144,7 +144,6 @@ const createUserByCompanyAdmin = async (req, res) => {
         .json({ msg: "User already exists with this email" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Prepare profile data
@@ -169,6 +168,7 @@ const createUserByCompanyAdmin = async (req, res) => {
       password: hashedPassword,
       role,
       profile,
+      createdBy: req.user.id,
     });
 
     res.status(201).json({
@@ -179,6 +179,7 @@ const createUserByCompanyAdmin = async (req, res) => {
         email: newUser.email,
         role: newUser.role,
         profile: newUser.profile,
+        createdBy: newUser.createdBy,
       },
     });
   } catch (err) {
@@ -187,6 +188,64 @@ const createUserByCompanyAdmin = async (req, res) => {
   }
 };
 
+// get all users created by the logged-in companyAdmin
+const getUsersByCompanyAdmin = async (req, res) => {
+  try {
+    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
+
+    const users = await User.find({
+      role: { $in: allowedRoles },
+      createdBy: req.user.id,
+    })
+      .select("-password")
+      .lean();
+
+    if (!users || users.length === 0) {
+      return res
+        .status(404)
+        .json({ msg: "No users found for this companyAdmin" });
+    }
+
+    res.status(200).json({
+      msg: "Users fetched successfully",
+      count: users.length,
+      users,
+    });
+  } catch (err) {
+    console.error("Get users error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+// get single user profile created by the logged-in companyAdmin
+const getUserProfileById = async (req, res) => {
+  try {
+    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
+    const { id } = req.params;
+
+    const user = await User.findOne({
+      _id: id,
+      role: { $in: allowedRoles },
+      createdBy: req.user.id,
+    }).select("-password");
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ msg: "User not found or not created by this companyAdmin" });
+    }
+
+    res.status(200).json({
+      msg: "User fetched successfully",
+      user,
+    });
+  } catch (err) {
+    console.error("Get user by ID error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+// updateProfile
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -250,5 +309,7 @@ export {
   createCompanyAdmin,
   forgotPassword,
   createUserByCompanyAdmin,
+  getUsersByCompanyAdmin,
+  getUserProfileById,
   updateProfile,
 };
