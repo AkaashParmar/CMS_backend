@@ -10,6 +10,7 @@ import prescriptionRoutes from "./routes/prescriptionRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import vaccinationRoutes from "./routes/vaccinationRoutes.js";
 import billingRoutes from "./routes/billingRoutes.js";
+import stockItemRoutes from "./routes/stockItemRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -32,6 +33,7 @@ app.use("/api/prescriptions", prescriptionRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/vaccinations", vaccinationRoutes);
 app.use("/api/billing", billingRoutes);
+app.use("/api/stockItem", stockItemRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

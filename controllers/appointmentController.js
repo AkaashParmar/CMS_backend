@@ -1,4 +1,3 @@
-// controllers/appointmentController.js
 import Appointment from "../models/Appointment.js";
 
 // Create Appointment
@@ -12,7 +11,7 @@ export const createAppointment = async (req, res) => {
   }
 };
 
-// Get All Appointments
+// All Appointments
 export const getAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find();
@@ -22,7 +21,7 @@ export const getAppointments = async (req, res) => {
   }
 };
 
-// Get Appointment by ID
+// Appointment by ID
 export const getAppointmentById = async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
@@ -33,7 +32,7 @@ export const getAppointmentById = async (req, res) => {
   }
 };
 
-// Update Appointment (e.g., reschedule or assign doctor)
+// Update Appointment
 export const updateAppointment = async (req, res) => {
   try {
     const updated = await Appointment.findByIdAndUpdate(
