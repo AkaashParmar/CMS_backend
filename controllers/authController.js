@@ -15,7 +15,7 @@ const register = async (req, res) => {
       return res.status(403).json({ msg: "Only superAdmin can self-register" });
     }
 
-    // allow only 1 superAdmin in the system
+    // allow only 1 superAdmin
     const existingSuperAdmin = await User.findOne({ role: "superAdmin" });
     if (existingSuperAdmin) {
       return res
@@ -41,13 +41,11 @@ const login = async (req, res) => {
   try {
     const { email, password, role } = req.body;
 
-    // find user by email, role
     const user = await User.findOne({ email, role });
     if (!user) {
       return res.status(400).json({ msg: "Invalid email, role, or password" });
     }
 
-    // check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ msg: "Invalid email, role, or password" });
@@ -73,7 +71,6 @@ const createCompanyAdmin = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Prevent duplicate email
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res
@@ -81,7 +78,6 @@ const createCompanyAdmin = async (req, res) => {
         .json({ msg: "Company admin already exists with this email" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user with role companyAdmin
@@ -106,11 +102,10 @@ const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     user.otp = otp;
-    user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.otpExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
     const message = `Hello ${user.name},\n\nYour OTP for password reset is: ${otp}. It is valid for 10 minutes.\n\nIf you didn't request this, ignore this email.`;
@@ -138,11 +133,9 @@ const resetPasswordWithOTP = async (req, res) => {
       return res.status(400).json({ msg: "OTP expired" });
     }
 
-    // Hash new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
 
-    // Clear OTP fields
     user.otp = undefined;
     user.otpExpires = undefined;
 
@@ -159,7 +152,6 @@ const createUserByCompanyAdmin = async (req, res) => {
   try {
     const { name, email, password, role, ...profileData } = req.body;
 
-    // Allowed roles only
     const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
     if (!allowedRoles.includes(role)) {
       return res.status(400).json({
@@ -167,7 +159,6 @@ const createUserByCompanyAdmin = async (req, res) => {
       });
     }
 
-    // Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res
@@ -177,7 +168,6 @@ const createUserByCompanyAdmin = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Prepare profile data
     let profile = { ...profileData };
 
     // Cloudinary Upload for photo
@@ -292,7 +282,6 @@ const updateProfile = async (req, res) => {
       return res.status(403).json({ msg: "Not authorized to update profile" });
     }
 
-    // Pick fields separately
     const {
       fullName,
       email,
