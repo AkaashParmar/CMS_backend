@@ -6,13 +6,14 @@ import {
   updateClinic,
   deleteClinic,
 } from "../controllers/clinicController.js";
+import authenticate from "../middleware/authmiddleware.js";
 
 const router = express.Router();
 
-router.post("/create", createClinic); // Add clinic
-router.get("/allClinics", getClinics); // List all clinics
-router.get("/single/:id", getClinicById); // Get single clinic
-router.put("/update/:id", updateClinic); // Update clinic
-router.delete("/delete/:id", deleteClinic); // Delete clinic
+router.post("/create", authenticate, createClinic);
+router.get("/allClinics", authenticate, getClinics);
+router.get("/single/:id", authenticate, getClinicById);
+router.put("/update/:id", authenticate, updateClinic);
+router.delete("/delete/:id", authenticate, deleteClinic);
 
 export default router;
