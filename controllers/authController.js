@@ -3,17 +3,19 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
+import cloudinary from "../config/cloudinary-config.js";
+import fs from "fs";
 
 const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
-    // ✅ Only allow superAdmin registration
+    // Only allow superAdmin registration
     if (role !== "superAdmin") {
       return res.status(403).json({ msg: "Only superAdmin can self-register" });
     }
 
-    // ✅ Optional: allow only 1 superAdmin in the system
+    // allow only 1 superAdmin
     const existingSuperAdmin = await User.findOne({ role: "superAdmin" });
     if (existingSuperAdmin) {
       return res
@@ -39,18 +41,16 @@ const login = async (req, res) => {
   try {
     const { email, password, role } = req.body;
 
-    // find user by email, role
     const user = await User.findOne({ email, role });
     if (!user) {
       return res.status(400).json({ msg: "Invalid email, role, or password" });
     }
 
-    // check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ msg: "Invalid email, role, or password" });
     }
-    
+
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -66,13 +66,11 @@ const login = async (req, res) => {
   }
 };
 
-
 // Create companyAdmin (accessible only by superAdmin)
 const createCompanyAdmin = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Prevent duplicate email
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res
@@ -80,7 +78,6 @@ const createCompanyAdmin = async (req, res) => {
         .json({ msg: "Company admin already exists with this email" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user with role companyAdmin
@@ -103,20 +100,48 @@ const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
-
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    const token = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.otp = otp;
+    user.otpExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    const resetURL = `http://localhost:5173/reset-password/${token}`;
-    const message = `Hello ${user.name},\n\nYou requested a password reset. Click here to reset your password:\n\n${resetURL}\n\nIf you didn't request this, ignore this email.`;
+    const message = `Hello ${user.name},\n\nYour OTP for password reset is: ${otp}. It is valid for 10 minutes.\n\nIf you didn't request this, ignore this email.`;
 
-    await sendEmail(user.email, "Password Reset Request", message);
+    await sendEmail(user.email, "Password Reset OTP", message);
 
-    res.status(200).json({ msg: "Password reset link sent to your email" });
+    res.status(200).json({ msg: "OTP sent to your email" });
+  } catch (err) {
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+const resetPasswordWithOTP = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    if (!user.otp || user.otp !== otp) {
+      return res.status(400).json({ msg: "Invalid OTP" });
+    }
+
+    if (user.otpExpires < Date.now()) {
+      return res.status(400).json({ msg: "OTP expired" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+
+    user.otp = undefined;
+    user.otpExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({ msg: "Password reset successfully" });
   } catch (err) {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
@@ -125,24 +150,15 @@ const forgotPassword = async (req, res) => {
 // Create user for doctor, labTechnician, patient, accountant (only by companyAdmin)
 const createUserByCompanyAdmin = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, ...profileData } = req.body;
 
-    // Allowed roles only
-    const allowedRoles = [
-      "doctor",
-      "labTechnician",
-      "patient",
-      "accountant",
-    ];
+    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
     if (!allowedRoles.includes(role)) {
-      return res
-        .status(400)
-        .json({
-          msg: "Invalid role. Allowed roles are doctor, labTechnician, patient, accountant",
-        });
+      return res.status(400).json({
+        msg: "Invalid role. Allowed roles are doctor, labTechnician, patient, accountant",
+      });
     }
 
-    // Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res
@@ -150,23 +166,160 @@ const createUserByCompanyAdmin = async (req, res) => {
         .json({ msg: "User already exists with this email" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
+    let profile = { ...profileData };
+
+    // Cloudinary Upload for photo
+    if (req.file && req.file.path) {
+      const resultCloud = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profiles",
+      });
+
+      // Delete local temp file after upload
+      fs.unlinkSync(req.file.path);
+
+      profile.photo = resultCloud.secure_url;
+    }
+
+    // Create new user with profile
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
       role,
+      profile,
+      createdBy: req.user.id,
     });
 
     res.status(201).json({
-      msg: `${role} created successfully`,
-      userId: newUser._id,
+      msg: `${role} created successfully with profile`,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        profile: newUser.profile,
+        createdBy: newUser.createdBy,
+      },
     });
   } catch (err) {
+    console.error("Create user error:", err);
     res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+// get all users created by the logged-in companyAdmin
+const getUsersByCompanyAdmin = async (req, res) => {
+  try {
+    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
+
+    const users = await User.find({
+      role: { $in: allowedRoles },
+      createdBy: req.user.id,
+    })
+      .select("-password")
+      .lean();
+
+    if (!users || users.length === 0) {
+      return res
+        .status(404)
+        .json({ msg: "No users found for this companyAdmin" });
+    }
+
+    res.status(200).json({
+      msg: "Users fetched successfully",
+      count: users.length,
+      users,
+    });
+  } catch (err) {
+    console.error("Get users error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+// get single user profile created by the logged-in companyAdmin
+const getUserProfileById = async (req, res) => {
+  try {
+    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
+    const { id } = req.params;
+
+    const user = await User.findOne({
+      _id: id,
+      role: { $in: allowedRoles },
+      createdBy: req.user.id,
+    }).select("-password");
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ msg: "User not found or not created by this companyAdmin" });
+    }
+
+    res.status(200).json({
+      msg: "User fetched successfully",
+      user,
+    });
+  } catch (err) {
+    console.error("Get user by ID error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+// updateProfile
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    if (
+      !["doctor", "labTechnician", "patient", "accountant"].includes(user.role)
+    ) {
+      return res.status(403).json({ msg: "Not authorized to update profile" });
+    }
+
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      gender,
+      dob,
+      department,
+      ...profileFields
+    } = req.body;
+
+    // Update root-level fields
+    if (fullName) user.fullName = fullName;
+    if (email) user.email = email;
+    if (phoneNumber) user.phoneNumber = phoneNumber;
+    if (gender) user.gender = gender;
+    if (dob) user.dob = dob;
+    if (department) user.department = department;
+
+    // Update nested profile fields
+    user.profile = { ...user.profile, ...profileFields };
+
+    // Cloudinary Upload
+    if (req.file && req.file.path) {
+      const resultCloud = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profiles",
+      });
+
+      fs.unlinkSync(req.file.path);
+
+      user.profile.photo = resultCloud.secure_url;
+    }
+
+    await user.save();
+
+    res.json({ msg: "Profile updated successfully", user });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ msg: err.message });
   }
 };
 
@@ -175,5 +328,9 @@ export {
   login,
   createCompanyAdmin,
   forgotPassword,
+  resetPasswordWithOTP,
   createUserByCompanyAdmin,
+  getUsersByCompanyAdmin,
+  getUserProfileById,
+  updateProfile,
 };

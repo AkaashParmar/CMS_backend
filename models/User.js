@@ -24,12 +24,46 @@ const userSchema = new mongoose.Schema(
       ],
       required: true,
     },
+
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
+    // Extra fields for EditProfile
+    profile: {
+      dob: Date,
+      placeOfBirth: String,
+      gender: String,
+      phoneNumber: String,
+      emergencyPhoneNumber: String,
+      religion: String,
+      nationality: String,
+      homeAddress: String,
+      spouseName: String,
+      spousePhone: String,
+      fatherName: String,
+      fatherPhone: String,
+      motherName: String,
+      motherPhone: String,
+      educationLevel: String,
+      institutionName: String,
+      graduationYear: String,
+      fieldOfStudy: String,
+      accountNumber: String,
+      bankName: String,
+      accountType: String,
+      accountStatus: String,
+      accessRole: String,
+      accessStatus: String,
+      photo: String,
+    },
+
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+
+    otp: String,
+    otpExpires: Date,
   },
   { timestamps: true }
 );
 
 const User = mongoose.model("User", userSchema);
-
 export default User;
