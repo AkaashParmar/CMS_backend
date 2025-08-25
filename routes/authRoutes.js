@@ -34,7 +34,7 @@ router.post(
   "/create-user",
   upload.single("photo"),
   authenticate,
-  authorizeRoles(["companyAdmin", "doctor"]),
+  authorizeRoles("companyAdmin"),
   createUserByCompanyAdmin
 );
 

@@ -27,6 +27,13 @@ const userSchema = new mongoose.Schema(
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
+    registrationNo: {
+      type: String,
+      required: function () {
+        return this.role === "doctor";
+      },
+    },
+
     // Extra fields for EditProfile
     profile: {
       dob: Date,
