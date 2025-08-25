@@ -150,13 +150,20 @@ const resetPasswordWithOTP = async (req, res) => {
 // Create user for doctor, labTechnician, patient, accountant (only by companyAdmin)
 const createUserByCompanyAdmin = async (req, res) => {
   try {
-    const { name, email, password, role, ...profileData } = req.body;
+    const { name, email, password, role, registrationNo, ...profileData } =
+      req.body;
 
     const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
     if (!allowedRoles.includes(role)) {
       return res.status(400).json({
         msg: "Invalid role. Allowed roles are doctor, labTechnician, patient, accountant",
       });
+    }
+
+    if (role === "doctor" && !registrationNo) {
+      return res
+        .status(400)
+        .json({ msg: "Registration No is required for doctor" });
     }
 
     const existingUser = await User.findOne({ email });
@@ -176,18 +183,16 @@ const createUserByCompanyAdmin = async (req, res) => {
         folder: "profiles",
       });
 
-      // Delete local temp file after upload
       fs.unlinkSync(req.file.path);
-
       profile.photo = resultCloud.secure_url;
     }
 
-    // Create new user with profile
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
       role,
+      registrationNo: role === "doctor" ? registrationNo : undefined,
       profile,
       createdBy: req.user.id,
     });
@@ -199,6 +204,7 @@ const createUserByCompanyAdmin = async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        registrationNo: newUser.registrationNo,
         profile: newUser.profile,
         createdBy: newUser.createdBy,
       },
