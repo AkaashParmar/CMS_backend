@@ -3,79 +3,53 @@ import Clinic from "../models/Clinic.js";
 // Create new clinic
 export const createClinic = async (req, res) => {
   try {
-    const { name, location, phone, primaryDoctor, associatedDoctors, panelDoctors } = req.body;
-
-    const clinic = new Clinic({
-      name,
-      location,
-      phone,
-      primaryDoctor,
-      associatedDoctors,
-      panelDoctors,
-    });
-
+    const clinic = new Clinic(req.body);
     await clinic.save();
-    res.status(201).json(clinic);
-  } catch (err) {
-    res.status(500).json({ message: "Error creating clinic", error: err.message });
+    res.status(201).json({ message: "Clinic created successfully", clinic });
+  } catch (error) {
+    res.status(400).json({ message: "Error creating clinic", error: error.message });
   }
 };
 
 // Get all clinics
 export const getClinics = async (req, res) => {
   try {
-    const clinics = await Clinic.find()
-      .populate("primaryDoctor", "fullName email")
-      .populate("associatedDoctors", "fullName email")
-      .populate("panelDoctors", "fullName email");
-
+    const clinics = await Clinic.find().populate("primaryDoctor associatedDoctors panelDoctors");
     res.status(200).json(clinics);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching clinics", error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching clinics", error: error.message });
   }
 };
 
 // Get single clinic
 export const getClinicById = async (req, res) => {
   try {
-    const clinic = await Clinic.findById(req.params.id)
-      .populate("primaryDoctor", "fullName email")
-      .populate("associatedDoctors", "fullName email")
-      .populate("panelDoctors", "fullName email");
-
+    const clinic = await Clinic.findById(req.params.id).populate("primaryDoctor associatedDoctors panelDoctors");
     if (!clinic) return res.status(404).json({ message: "Clinic not found" });
-
     res.status(200).json(clinic);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching clinic", error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching clinic", error: error.message });
   }
 };
 
 // Update clinic
 export const updateClinic = async (req, res) => {
   try {
-    const updatedClinic = await Clinic.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-
-    if (!updatedClinic) return res.status(404).json({ message: "Clinic not found" });
-
-    res.status(200).json(updatedClinic);
-  } catch (err) {
-    res.status(500).json({ message: "Error updating clinic", error: err.message });
+    const clinic = await Clinic.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!clinic) return res.status(404).json({ message: "Clinic not found" });
+    res.status(200).json({ message: "Clinic updated successfully", clinic });
+  } catch (error) {
+    res.status(400).json({ message: "Error updating clinic", error: error.message });
   }
 };
 
-// Delete / Disable clinic
+// Delete clinic
 export const deleteClinic = async (req, res) => {
   try {
     const clinic = await Clinic.findByIdAndDelete(req.params.id);
     if (!clinic) return res.status(404).json({ message: "Clinic not found" });
-
     res.status(200).json({ message: "Clinic deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Error deleting clinic", error: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting clinic", error: error.message });
   }
 };
