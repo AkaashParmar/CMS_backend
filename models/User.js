@@ -34,6 +34,8 @@ const userSchema = new mongoose.Schema(
       },
     },
 
+    patientId: { type: String, unique: true },
+
     // Extra fields for EditProfile
     profile: {
       dob: Date,
