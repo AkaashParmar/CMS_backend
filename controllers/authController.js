@@ -187,12 +187,27 @@ const createUserByCompanyAdmin = async (req, res) => {
       profile.photo = resultCloud.secure_url;
     }
 
+    // Generate Patient ID if role = patient
+    let patientId;
+    if (role === "patient") {
+      const lastPatient = await User.findOne({ role: "patient" })
+        .sort({ createdAt: -1 })
+        .select("patientId");
+
+      let nextNumber = 1;
+      if (lastPatient && lastPatient.patientId) {
+        nextNumber = parseInt(lastPatient.patientId.split("-")[1]) + 1;
+      }
+      patientId = `PID-${String(nextNumber).padStart(3, "0")}`;
+    }
+
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
       role,
       registrationNo: role === "doctor" ? registrationNo : undefined,
+      patientId: role === "patient" ? patientId : undefined,
       profile,
       createdBy: req.user.id,
     });
@@ -205,6 +220,7 @@ const createUserByCompanyAdmin = async (req, res) => {
         email: newUser.email,
         role: newUser.role,
         registrationNo: newUser.registrationNo,
+        patientId: newUser.patientId,
         profile: newUser.profile,
         createdBy: newUser.createdBy,
       },
