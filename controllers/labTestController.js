@@ -4,7 +4,15 @@ import LabTest from "../models/LabResult.js";
 export const createLabTest = async (req, res) => {
   try {
     const { name, unit, min, max } = req.body;
-    const test = new LabTest({ name, unit, min, max });
+
+    const test = new LabTest({
+      name,
+      unit,
+      min,
+      max,
+      createdBy: req.user.id, 
+    });
+
     await test.save();
     res.status(201).json(test);
   } catch (err) {
