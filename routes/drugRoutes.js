@@ -2,17 +2,19 @@ import express from "express";
 import {
   createDrug,
   getDrugs,
-  getDrugById,
+  // getDrugById,
   updateDrug,
   deleteDrug,
 } from "../controllers/drugController.js";
+import authenticate from "../middleware/authmiddleware.js";
+import authorizeRoles from "../middleware/authorizeRolemiddleware.js";
 
 const router = express.Router();
 
-router.post("/add", createDrug); // Add drug
-router.get("/alldrug", getDrugs); // List all drugs
-router.get("/:id", getDrugById); // Get single drug
-router.put("/:id", updateDrug); // Update drug
-router.delete("/:id", deleteDrug); // Delete drug
+router.post("/add", authenticate, createDrug);
+router.get("/alldrug", authenticate, getDrugs);
+// router.get("/:id", authenticate, getDrugById);
+router.put("/:id", authenticate, updateDrug);
+router.delete("/:id", authenticate, deleteDrug);
 
 export default router;
