@@ -1,9 +1,27 @@
 import mongoose from "mongoose";
-const schema = new mongoose.Schema({
-  title:String,
-  type:{ type:String, enum:["finance","patient","lab","inventory","custom"] },
-  filters:Object, // saved filter config
-  generatedAt:Date,
-  data:Object      // store snapshot or summary
-},{timestamps:true});
-export default mongoose.model("Report", schema);
+
+const patientReportSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    fileUrl: { type: String },
+    date: { type: String, required: true },
+    doctor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Doctor's User model
+      required: true,
+    },
+    comments: { type: String, default: "" },
+    status: {
+      type: String,
+      enum: ["Pending Review", "Reviewed"],
+      default: "Pending Review",
+    },
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Patient's User model
+    },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.model("PatientReport", patientReportSchema);
