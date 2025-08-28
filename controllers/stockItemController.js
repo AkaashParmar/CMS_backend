@@ -2,8 +2,19 @@ import StockItem from "../models/StockItem.js";
 
 export const createStockItem = async (req, res) => {
   try {
-    const stockItem = new StockItem(req.body);
+    // 👇 assume req.user.id is coming from your auth middleware
+    const userId = req.user?.id || null;
+
+    const stockItem = new StockItem({
+      ...req.body,
+      createdBy: userId, // store who created it
+    });
+
     const savedItem = await stockItem.save();
+
+    // Populate creator details if you want to return them
+    await savedItem.populate("createdBy", "name email role");
+
     res.status(201).json(savedItem);
   } catch (err) {
     res.status(400).json({ message: err.message });
