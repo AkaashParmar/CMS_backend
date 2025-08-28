@@ -1,195 +1,121 @@
 import Billing from "../models/Billing.js";
 
-// Create new invoice
-export const createInvoice = async (req, res) => {
+// generate billId
+const generateBillId = async () => {
+  const lastBill = await Billing.findOne().sort({ createdAt: -1 });
+  if (!lastBill) return "BILL-0001";
+
+  const lastId = parseInt(lastBill.billId.split("-")[1]);
+  const newId = lastId + 1;
+  return `BILL-${newId.toString().padStart(4, "0")}`;
+};
+
+// Create billing
+export const createBilling = async (req, res) => {
   try {
-    const invoice = new Billing(req.body);
-    const saved = await invoice.save();
+    const { patientId, patient, service, doctor, treatment, amount, items } =
+      req.body;
+
+    const newBillId = await generateBillId();
+
+    const billing = new Billing({
+      billId: newBillId,
+      patientId,
+      patient,
+      service,
+      doctor,
+      treatment,
+      amount,
+      items,
+    });
+
+    const saved = await billing.save();
     res.status(201).json(saved);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
 
-// Get all invoices
-export const getInvoices = async (req, res) => {
+// Get all bills
+export const getBills = async (req, res) => {
   try {
-    const invoices = await Billing.find().sort({ createdAt: -1 });
-    res.json(invoices);
+    const bills = await Billing.find().sort({ createdAt: -1 });
+    res.json(bills);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Get invoice by ID
-export const getInvoiceById = async (req, res) => {
+// Get single bill by ID
+export const getBillById = async (req, res) => {
   try {
-    const invoice = await Billing.findById(req.params.id);
-    if (!invoice) return res.status(404).json({ message: "Invoice not found" });
-    res.json(invoice);
+    const bill = await Billing.findOne({ billId: req.params.billId });
+    if (!bill) return res.status(404).json({ message: "Bill not found" });
+    res.json(bill);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Update invoice (edit patient, service, status, etc.)
-export const updateInvoice = async (req, res) => {
+//Update bill status (Paid/Unpaid)
+export const updateBillStatus = async (req, res) => {
   try {
-    const updated = await Billing.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!updated) return res.status(404).json({ message: "Invoice not found" });
-    res.json(updated);
+    const { status } = req.body;
+    const bill = await Billing.findOneAndUpdate(
+      { billId: req.params.billId },
+      { status },
+      { new: true }
+    );
+    if (!bill) return res.status(404).json({ message: "Bill not found" });
+    res.json(bill);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
 
-// Update Payment for an Invoice
-export const updateInvoicePayment = async (req, res) => {
+// Delete bill
+export const deleteBill = async (req, res) => {
   try {
-    const { invoiceId } = req.params;
-    const { method, amount, reference } = req.body;
+    const bill = await Billing.findOneAndDelete({ billId: req.params.billId });
+    if (!bill) return res.status(404).json({ message: "Bill not found" });
+    res.json({ message: "Bill deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
-    if (!amount || amount <= 0) {
-      return res
-        .status(400)
-        .json({ message: "Payment amount must be greater than 0" });
+// Patient Billing
+export const addBillingItem = async (req, res) => {
+  try {
+    const { billId } = req.params;
+    const { service, description, qty, price } = req.body;
+
+    // Find the billing record
+    const billing = await Billing.findOne({ billId });
+    if (!billing) {
+      return res.status(404).json({ msg: "Billing record not found" });
     }
 
-    const invoice = await Billing.findOne({ invoiceId });
-    if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+    // Create new item
+    const newItem = {
+      service,
+      description,
+      qty,
+      price,
+      createdAt: new Date(),
+    };
 
-    // Recalculate invoice total from items (safety check)
-    invoice.amount = invoice.items.reduce(
-      (sum, item) => sum + item.qty * item.price,
-      0
-    );
+    // Push item into billing
+    billing.items.push(newItem);
 
-    // Add payment
-    invoice.payments.push({
-      method,
-      amount,
-      reference,
-      paidOn: new Date(),
-    });
-
-    // Calculate total paid
-    const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
-
-    // Update status correctly
-    if (totalPaid >= invoice.amount) {
-      invoice.status = "Paid";
-    } else {
-      invoice.status = "Unpaid";
-    }
-
-    await invoice.save();
+    await billing.save();
 
     res.json({
-      message: "Payment updated successfully",
-      invoice,
-      totalPaid,
-      outstanding: Math.max(invoice.amount - totalPaid, 0), // prevent negatives
+      msg: "Item added successfully",
+      billing,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Update items (description, qty, price)
-export const updateInvoiceItems = async (req, res) => {
-  try {
-    const { invoiceId } = req.params;
-    const { items } = req.body;
-
-    if (!items || !Array.isArray(items)) {
-      return res
-        .status(400)
-        .json({ message: "Items must be provided as an array" });
-    }
-
-    const invoice = await Billing.findOne({ invoiceId });
-    if (!invoice) {
-      return res.status(404).json({ message: "Invoice not found" });
-    }
-
-    // Replace items with new ones
-    invoice.items = items;
-
-    // Recalculate total amount
-    invoice.amount = invoice.items.reduce(
-      (sum, item) => sum + item.qty * item.price,
-      0
-    );
-
-    // If payments already exist, recheck status
-    const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
-    invoice.status = totalPaid >= invoice.amount ? "Paid" : "Unpaid";
-
-    await invoice.save();
-
-    res.json({
-      message: "Invoice items updated successfully",
-      invoice,
-      totalAmount: invoice.amount,
-      totalPaid,
-      outstanding: Math.max(invoice.amount - totalPaid, 0),
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Delete invoice
-export const deleteInvoice = async (req, res) => {
-  try {
-    const deleted = await Billing.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: "Invoice not found" });
-    res.json({ message: "Invoice deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Get Accountant Dashboard Data
-export const getAccountantDashboard = async (req, res) => {
-  try {
-    // Total revenue
-    const totalRevenue = await Billing.aggregate([
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-
-    // Revenue breakdown by service
-    const revenueBreakdown = await Billing.aggregate([
-      { $group: { _id: "$service", total: { $sum: "$amount" } } },
-    ]);
-
-    // Paid vs Unpaid invoices
-    const paymentStatus = await Billing.aggregate([
-      { $group: { _id: "$status", total: { $sum: "$amount" } } },
-    ]);
-
-    // Outstanding dues (unpaid only)
-    const outstanding = await Billing.aggregate([
-      { $match: { status: "Unpaid" } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-
-    // Recent invoices (latest 10)
-    const recentInvoices = await Billing.find()
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    res.status(200).json({
-      revenueBreakdown,
-      paymentStatus,
-      totalRevenue: totalRevenue[0]?.total || 0,
-      outstanding: outstanding[0]?.total || 0,
-      recentInvoices,
-    });
-  } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
