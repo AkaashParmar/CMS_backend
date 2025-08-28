@@ -18,6 +18,7 @@ const stockItemSchema = new mongoose.Schema(
     supplierPhone: { type: String },
     description: { type: String },
     clinic: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
 );
