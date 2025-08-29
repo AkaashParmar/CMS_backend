@@ -15,6 +15,7 @@ import patientReportRoutes from "./routes/patientReportRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
 import stockOutRoutes from "./routes/stockOutRoutes.js";
 import stockCategoryRoutes from "./routes/stockCategoryRoutes.js";
+import consultationRoutes from "./routes/consultationRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -33,6 +34,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/clinics", clinicRoutes);
 app.use("/api/drugs", drugRoutes);
 app.use("/api/lab-tests", labTestRoutes);
+app.use("/api/consultation", consultationRoutes);
 app.use("/api/prescriptions", prescriptionRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/vaccinations", vaccinationRoutes);
