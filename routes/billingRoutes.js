@@ -7,6 +7,7 @@ import {
   deleteBill,
   addBillingItem,
   getRecentBills,
+  getBillingStats,
 } from "../controllers/billingController.js";
 import authenticate from "../middleware/authmiddleware.js";
 
@@ -14,7 +15,11 @@ const router = express.Router();
 
 router.post("/", authenticate, createBilling);
 router.get("/", authenticate, getBills);
-router.get("/recent", authenticate, getRecentBills);  //Accountant Dashboard
+
+//Accountant Dashboard
+router.get("/recent", authenticate, getRecentBills);
+router.get("/stats", authenticate, getBillingStats);
+
 router.get("/:billId", authenticate, getBillById);
 router.put("/:billId/status", authenticate, updateBillStatus);
 router.delete("/:billId", authenticate, deleteBill);

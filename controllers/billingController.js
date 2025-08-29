@@ -143,6 +143,7 @@ export const addBillingItem = async (req, res) => {
   }
 };
 
+
 //Accountant Dashboard
 export const getRecentBills = async (req, res) => {
   try {
@@ -185,4 +186,30 @@ export const getRecentBills = async (req, res) => {
   }
 };
 
+// API to calculate revenue & total due
+export const getBillingStats = async (req, res) => {
+  try {
+    const revenueResult = await Billing.aggregate([
+      { $match: { status: "Paid" } },
+      { $group: { _id: null, totalRevenue: { $sum: "$amount" } } },
+    ]);
 
+    const dueResult = await Billing.aggregate([
+      { $group: { _id: null, totalDueBalance: { $sum: "$dueBalance" } } },
+    ]);
+
+    const totalRevenue =
+      revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+    const totalDueBalance =
+      dueResult.length > 0 ? dueResult[0].totalDueBalance : 0;
+
+    res.json({
+      msg: "Billing stats fetched successfully",
+      totalRevenue,
+      totalDueBalance,
+    });
+  } catch (err) {
+    console.error("Error fetching billing stats:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
