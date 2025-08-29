@@ -18,13 +18,16 @@ export const createBilling = async (req, res) => {
     const newBillId = await generateBillId();
 
     // Process items
-    const processedItems = (items || []).map(item => ({
+    const processedItems = (items || []).map((item) => ({
       ...item,
       createdAt: new Date(),
     }));
 
     // Calculate total dueBalance (sum of item prices)
-    const totalDueBalance = processedItems.reduce((sum, item) => sum + item.price, 0);
+    const totalDueBalance = processedItems.reduce(
+      (sum, item) => sum + item.price,
+      0
+    );
 
     const billing = new Billing({
       billId: newBillId,
@@ -32,7 +35,7 @@ export const createBilling = async (req, res) => {
       service,
       doctor,
       treatment,
-      amount: totalDueBalance,  
+      amount: totalDueBalance,
       items: processedItems,
       dueBalance: totalDueBalance,
     });
@@ -44,14 +47,13 @@ export const createBilling = async (req, res) => {
   }
 };
 
-
 // Get all bills with patient details (Account + Patient Bill)
 export const getBills = async (req, res) => {
   try {
     const bills = await Billing.find()
       .sort({ createdAt: -1 })
-      .populate("patientId") 
-      .populate("doctor", "name email profile.phoneNumber"); 
+      .populate("patientId")
+      .populate("doctor", "name email profile.phoneNumber");
 
     res.json(bills);
   } catch (err) {
@@ -63,7 +65,7 @@ export const getBills = async (req, res) => {
 export const getBillById = async (req, res) => {
   try {
     const bill = await Billing.findOne({ billId: req.params.billId })
-      .populate("patientId") 
+      .populate("patientId")
       .populate("doctor", "name email profile.phoneNumber");
 
     if (!bill) return res.status(404).json({ message: "Bill not found" });
@@ -123,8 +125,11 @@ export const addBillingItem = async (req, res) => {
     billing.items.push(newItem);
 
     // Recalculate total dueBalance
-    billing.dueBalance = billing.items.reduce((sum, item) => sum + item.price, 0);
-    billing.amount = billing.dueBalance; 
+    billing.dueBalance = billing.items.reduce(
+      (sum, item) => sum + item.price,
+      0
+    );
+    billing.amount = billing.dueBalance;
 
     await billing.save();
 
@@ -137,3 +142,47 @@ export const addBillingItem = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
+
+//Accountant Dashboard
+export const getRecentBills = async (req, res) => {
+  try {
+    // Fetch recent bills
+    const recentBills = await Billing.find()
+      .sort({ createdAt: -1 })
+      .limit(8)
+      .populate("patientId", "name")
+      .select("billId amount dueBalance status createdAt");
+
+    if (!recentBills || recentBills.length === 0) {
+      return res.status(404).json({ msg: "No bills found" });
+    }
+
+    // Format response
+    const formatted = recentBills.map((bill) => ({
+      billId: bill.billId,
+      patient: bill.patientId?.name || "Unknown",
+      amount: bill.amount,
+      dueBalance: bill.dueBalance || 0,
+      status: bill.status || "Pending",
+      createdAt: bill.createdAt,
+    }));
+
+    // Get counts of Paid / Unpaid
+    const paidCount = await Billing.countDocuments({ status: "Paid" });
+    const unpaidCount = await Billing.countDocuments({ status: "Unpaid" });
+
+    res.json({
+      msg: "Recent bills fetched successfully",
+      bills: formatted,
+      summary: {
+        totalPaid: paidCount,
+        totalUnpaid: unpaidCount,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+
