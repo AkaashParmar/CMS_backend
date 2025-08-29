@@ -10,23 +10,31 @@ const generateBillId = async () => {
   return `BILL-${newId.toString().padStart(4, "0")}`;
 };
 
-// Create billing
+// Create Account billing (Accountant)
 export const createBilling = async (req, res) => {
   try {
-    const { patientId, patient, service, doctor, treatment, amount, items } =
-      req.body;
+    const { patientId, service, doctor, treatment, items } = req.body;
 
     const newBillId = await generateBillId();
+
+    // Process items
+    const processedItems = (items || []).map(item => ({
+      ...item,
+      createdAt: new Date(),
+    }));
+
+    // Calculate total dueBalance (sum of item prices)
+    const totalDueBalance = processedItems.reduce((sum, item) => sum + item.price, 0);
 
     const billing = new Billing({
       billId: newBillId,
       patientId,
-      patient,
       service,
       doctor,
       treatment,
-      amount,
-      items,
+      amount: totalDueBalance,  
+      items: processedItems,
+      dueBalance: totalDueBalance,
     });
 
     const saved = await billing.save();
@@ -36,21 +44,30 @@ export const createBilling = async (req, res) => {
   }
 };
 
-// Get all bills
+
+// Get all bills with patient details (Account + Patient Bill)
 export const getBills = async (req, res) => {
   try {
-    const bills = await Billing.find().sort({ createdAt: -1 });
+    const bills = await Billing.find()
+      .sort({ createdAt: -1 })
+      .populate("patientId") 
+      .populate("doctor", "name email profile.phoneNumber"); 
+
     res.json(bills);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Get single bill by ID
+// Get bill by billId
 export const getBillById = async (req, res) => {
   try {
-    const bill = await Billing.findOne({ billId: req.params.billId });
+    const bill = await Billing.findOne({ billId: req.params.billId })
+      .populate("patientId") 
+      .populate("doctor", "name email profile.phoneNumber");
+
     if (!bill) return res.status(404).json({ message: "Bill not found" });
+
     res.json(bill);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -84,29 +101,30 @@ export const deleteBill = async (req, res) => {
   }
 };
 
-// Patient Billing
+// Add Patient billing item (Accountant)
 export const addBillingItem = async (req, res) => {
   try {
     const { billId } = req.params;
-    const { service, description, qty, price } = req.body;
+    const { service, description, price } = req.body;
 
-    // Find the billing record
     const billing = await Billing.findOne({ billId });
     if (!billing) {
       return res.status(404).json({ msg: "Billing record not found" });
     }
 
-    // Create new item
     const newItem = {
       service,
       description,
-      qty,
       price,
       createdAt: new Date(),
     };
 
-    // Push item into billing
+    // Push new item
     billing.items.push(newItem);
+
+    // Recalculate total dueBalance
+    billing.dueBalance = billing.items.reduce((sum, item) => sum + item.price, 0);
+    billing.amount = billing.dueBalance; 
 
     await billing.save();
 
