@@ -4,7 +4,7 @@ import StockItem from "../models/StockItem.js";
 // Create StockOut
 export const createStockOut = async (req, res) => {
   try {
-    const { stockItem, createdDate, unitPrice, quantity, description, clinic } =
+    const { stockItem, createdDate, unitPrice, quantity, description } =
       req.body;
 
     // Find the stock item
@@ -30,7 +30,7 @@ export const createStockOut = async (req, res) => {
       totalPrice,
       quantityAfter,
       description,
-      clinic,
+      // clinic,
       createdBy: req.user.id,
     });
 
@@ -51,7 +51,7 @@ export const getAllStockOuts = async (req, res) => {
   try {
     const stockOuts = await StockOut.find()
       .populate("stockItem", "itemName category")
-      .populate("clinic", "name");
+      .populate("name");
     res.json(stockOuts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -63,7 +63,7 @@ export const getStockOutById = async (req, res) => {
   try {
     const stockOut = await StockOut.findById(req.params.id)
       .populate("stockItem", "itemName category")
-      .populate("clinic", "name");
+      .populate("name");
 
     if (!stockOut)
       return res.status(404).json({ message: "StockOut not found" });
