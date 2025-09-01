@@ -345,6 +345,74 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// User Roles Distribution (SuperAdmin)
+const getUserStats = async (req, res) => {
+  try {
+    const roles = [
+      "patient",
+      "doctor",
+      "labTechnician",
+      "accountant",
+      "companyAdmin",
+    ];
+
+    const stats = await User.aggregate([
+      { $match: { role: { $in: roles } } },
+      { $group: { _id: "$role", count: { $sum: 1 } } },
+    ]);
+
+    // Convert array to object { role: count }
+    const counts = {};
+    roles.forEach((role) => {
+      const found = stats.find((s) => s._id === role);
+      counts[role] = found ? found.count : 0;
+    });
+
+    const totalUsers = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    res.json({
+      msg: "User stats fetched successfully",
+      totalUsers,
+      counts,
+    });
+  } catch (err) {
+    console.error("User stats error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+// Get total patients under a specific companyAdmin (clinic)
+const getPatientCountByCompanyAdmin = async (req, res) => {
+  try {
+    // only superAdmin allowed
+    if (req.user.role !== "superAdmin") {
+      return res.status(403).json({
+        message: "Access denied. Only superAdmin can fetch patient counts."
+      });
+    }
+
+    const { companyAdminId } = req.params; // from route param
+
+    // count patients created by that companyAdmin
+    const patientCount = await User.countDocuments({
+      createdBy: companyAdminId,
+      role: "patient",
+    });
+
+    res.status(200).json({
+      success: true,
+      companyAdminId,
+      patientCount,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
+  }
+};
+
+
 export {
   register,
   login,
@@ -355,4 +423,6 @@ export {
   getUsersByCompanyAdmin,
   getUserProfileById,
   updateProfile,
+  getUserStats,
+  getPatientCountByCompanyAdmin,
 };

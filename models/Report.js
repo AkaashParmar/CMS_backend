@@ -18,7 +18,7 @@ const patientReportSchema = new mongoose.Schema(
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Patient's User model
+      ref: "User", 
     },
   },
   { timestamps: true }
