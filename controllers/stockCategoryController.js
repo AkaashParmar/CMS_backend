@@ -2,13 +2,14 @@ import Category from "../models/StockCategories.js";
 
 export const createCategory = async (req, res) => {
   try {
-    const { name, unit, description, status } = req.body;
+    const { name, unit, description, status, type } = req.body; // ✅ added type
 
     const category = new Category({
       name,
       unit,
       description,
       status,
+      type,
       createdBy: req.user.id,
     });
 
@@ -45,11 +46,11 @@ export const getCategoryById = async (req, res) => {
 // Update category
 export const updateCategory = async (req, res) => {
   try {
-    const { name, unit, description, status } = req.body;
+    const { name, unit, type, description, status } = req.body; // ✅ added type
 
     const category = await Category.findByIdAndUpdate(
       req.params.id,
-      { name, unit, description, status },
+      { name, unit, type, description, status },
       { new: true, runValidators: true }
     );
 
@@ -62,7 +63,6 @@ export const updateCategory = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
-
 // Delete category
 export const deleteCategory = async (req, res) => {
   try {
