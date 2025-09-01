@@ -9,20 +9,21 @@ import {
   updateStock,
   deleteStock,
 } from "../controllers/vaccinationController.js";
+import authenticate from "../middleware/authmiddleware.js";
 
 const router = express.Router();
 
 // Dose Routes
-router.post("/doses", createDose);
-router.get("/doses", getDoses);
-router.get("/doses/:id", getDoseById);
+router.post("/doses", authenticate, createDose);
+router.get("/doses", authenticate, getDoses);
+router.get("/doses/:id", authenticate, getDoseById);
 
 // Stock Routes
-router.post("/stocks", createStock);
-router.get("/stocks", getStocks);
-router.get("/stocks/:id", getStockById);
-router.put("/:id", updateStock); // full update
-router.patch("/:id", updateStock); // partial update
-router.delete("/:id", deleteStock);
+router.post("/stocks", authenticate, createStock);
+router.get("/stocks", authenticate, getStocks);
+router.get("/stocks/:id", authenticate, getStockById);
+router.put("/:id", authenticate, updateStock); // full update
+router.patch("/:id", authenticate, updateStock); // partial update
+router.delete("/:id", authenticate, deleteStock);
 
 export default router;

@@ -17,7 +17,7 @@ const stockOutSchema = new mongoose.Schema(
     quantityAfter: { type: Number, required: true },
     description: { type: String },
 
-    clinic: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
+    // clinic: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -5,11 +5,12 @@ const patientReportSchema = new mongoose.Schema(
     name: { type: String, required: true },
     fileUrl: { type: String },
     date: { type: String, required: true },
-    doctor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Doctor's User model
-      required: true,
-    },
+    // doctor: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "User", // Doctor's User model
+    //   required: true,
+    // },
+    doctorName: { type: String, required: true },
     comments: { type: String, default: "" },
     status: {
       type: String,
@@ -18,7 +19,7 @@ const patientReportSchema = new mongoose.Schema(
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", 
+      ref: "User",
     },
   },
   { timestamps: true }
