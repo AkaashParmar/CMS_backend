@@ -9,6 +9,8 @@ import {
   forgotPassword,
   resetPasswordWithOTP,
   updateProfile,
+  getUserStats,
+  getPatientCountByCompanyAdmin,
 } from "../controllers/authController.js";
 import authenticate from "../middleware/authmiddleware.js";
 import authorizeRoles from "../middleware/authorizeRolemiddleware.js";
@@ -46,5 +48,13 @@ router.put("/updateProfile", authenticate, updateProfile);
 //this is for both(superAdmin and companyAdmin)
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password-otp", resetPasswordWithOTP);
+
+router.get("/stats", authenticate, authorizeRoles("superAdmin"), getUserStats);
+router.get(
+  "/patients",
+  authenticate,
+  authorizeRoles("superAdmin"),
+  getPatientCountByCompanyAdmin
+);
 
 export default router;
