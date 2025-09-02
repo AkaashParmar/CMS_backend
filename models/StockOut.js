@@ -5,8 +5,7 @@ const stockOutSchema = new mongoose.Schema(
     stockOutId: { type: String, unique: true },
 
     stockItem: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "StockItem",
+      type: String,
       required: true,
     },
 
@@ -17,7 +16,6 @@ const stockOutSchema = new mongoose.Schema(
     quantityAfter: { type: Number, required: true },
     description: { type: String },
 
-    // clinic: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic" },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
