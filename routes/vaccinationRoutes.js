@@ -8,6 +8,7 @@ import {
   getStockById,
   updateStock,
   deleteStock,
+  getPatientVaccinationSummary,
 } from "../controllers/vaccinationController.js";
 import authenticate from "../middleware/authmiddleware.js";
 
@@ -16,6 +17,7 @@ const router = express.Router();
 // Dose Routes
 router.post("/doses", authenticate, createDose);
 router.get("/doses", authenticate, getDoses);
+router.get("/getSummary/:patientId", getPatientVaccinationSummary);
 router.get("/doses/:id", authenticate, getDoseById);
 
 // Stock Routes

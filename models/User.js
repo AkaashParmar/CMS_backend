@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
+    vaccineDoses: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "VaccinationDose" },
+    ],
+
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
     registrationNo: {
