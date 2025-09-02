@@ -1,44 +1,33 @@
 import StockOut from "../models/StockOut.js";
-import StockItem from "../models/StockItem.js";
 
-// Create StockOut
+// create StockOut
 export const createStockOut = async (req, res) => {
   try {
-    const { stockItem, createdDate, unitPrice, quantity, description } =
-      req.body;
+    const {
+      stockItem,
+      createdDate,
+      unitPrice,
+      quantity,
+      description,
+      quantityBefore,
+    } = req.body;
 
-    // Find the stock item
-    const item = await StockItem.findById(stockItem);
-    if (!item) {
-      return res.status(404).json({ message: "Stock item not found" });
-    }
-
-    // Calculate values
     const totalPrice = unitPrice * quantity;
-    const quantityAfter = item.originalQuantity - quantity;
+    const quantityAfter = quantityBefore - quantity;
 
-    if (quantityAfter < 0) {
-      return res.status(400).json({ message: "Not enough stock available" });
-    }
-
-    // Save StockOut
     const stockOut = new StockOut({
       stockItem,
       createdDate,
       unitPrice,
       quantity,
       totalPrice,
-      quantityAfter,
       description,
-      // clinic,
-      createdBy: req.user.id,
+      quantityBefore,
+      quantityAfter,
+      createdBy: req.user?.id,
     });
 
     await stockOut.save();
-
-    // Update stock item quantity
-    item.originalQuantity = quantityAfter;
-    await item.save();
 
     res.status(201).json(stockOut);
   } catch (error) {
@@ -46,27 +35,24 @@ export const createStockOut = async (req, res) => {
   }
 };
 
-// Get all StockOut records
+// get all StockOut records
 export const getAllStockOuts = async (req, res) => {
   try {
-    const stockOuts = await StockOut.find()
-      .populate("stockItem", "itemName category")
-      .populate("name");
+    const stockOuts = await StockOut.find();
     res.json(stockOuts);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get StockOut by ID
+// get StockOut by ID
 export const getStockOutById = async (req, res) => {
   try {
-    const stockOut = await StockOut.findById(req.params.id)
-      .populate("stockItem", "itemName category")
-      .populate("name");
+    const stockOut = await StockOut.findById(req.params.id);
 
-    if (!stockOut)
+    if (!stockOut) {
       return res.status(404).json({ message: "StockOut not found" });
+    }
 
     res.json(stockOut);
   } catch (error) {
@@ -74,7 +60,7 @@ export const getStockOutById = async (req, res) => {
   }
 };
 
-// Update StockOut
+// update StockOut
 export const updateStockOut = async (req, res) => {
   try {
     const updatedStockOut = await StockOut.findByIdAndUpdate(
@@ -83,8 +69,9 @@ export const updateStockOut = async (req, res) => {
       { new: true }
     );
 
-    if (!updatedStockOut)
+    if (!updatedStockOut) {
       return res.status(404).json({ message: "StockOut not found" });
+    }
 
     res.json(updatedStockOut);
   } catch (error) {
@@ -92,15 +79,43 @@ export const updateStockOut = async (req, res) => {
   }
 };
 
-// Delete StockOut
+// delete StockOut
 export const deleteStockOut = async (req, res) => {
   try {
     const deletedStockOut = await StockOut.findByIdAndDelete(req.params.id);
 
-    if (!deletedStockOut)
+    if (!deletedStockOut) {
       return res.status(404).json({ message: "StockOut not found" });
+    }
 
     res.json({ message: "StockOut deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+//companyAdmin
+
+// Get StockOut counts grouped by StockItem
+export const getStockOutCounts = async (req, res) => {
+  try {
+    const counts = await StockOut.aggregate([
+      {
+        $group: {
+          _id: "$stockItem",
+          totalQuantity: { $sum: "$quantity" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          stockItem: "$_id",
+          totalQuantity: 1,
+        },
+      },
+    ]);
+
+    res.json(counts);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -33,7 +33,6 @@ export const createAppointment = async (req, res) => {
 // Get All Appointments
 export const getAppointments = async (req, res) => {
   try {
-    
     const appointments = await Appointment.find().populate(
       "patient",
       "name email patientId"
@@ -51,7 +50,7 @@ export const getAppointmentById = async (req, res) => {
     const appointment = await Appointment.findById(req.params.id).populate(
       "patient",
       "name email patientId"
-    ); 
+    );
 
     if (!appointment)
       return res.status(404).json({ message: "Appointment not found" });
@@ -99,6 +98,48 @@ export const deleteAppointment = async (req, res) => {
     if (!deleted)
       return res.status(404).json({ message: "Appointment not found" });
     res.json({ message: "Appointment deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// companyAdmin Dshboard
+
+// Get Total Appointments Count (CompanyAdmin)
+export const getAppointmentsCount = async (req, res) => {
+  try {
+    const count = await Appointment.countDocuments();
+    res.json({ totalAppointments: count });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get Appointment Status Counts
+export const getAppointmentStatusCounts = async (req, res) => {
+  try {
+    const statusCounts = await Appointment.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Convert to a clean object format
+    const result = {
+      Pending: 0,
+      Scheduled: 0,
+      Completed: 0,
+      Cancelled: 0,
+    };
+
+    statusCounts.forEach((item) => {
+      result[item._id] = item.count;
+    });
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
