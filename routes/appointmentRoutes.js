@@ -6,13 +6,14 @@ import {
   updateAppointment,
   deleteAppointment,
 } from "../controllers/appointmentController.js";
+import authenticate from "../middleware/authmiddleware.js";
 
 const router = express.Router();
 
-router.post("/create", createAppointment);
-router.get("/getAll", getAppointments);
-router.get("/:id", getAppointmentById);
-router.put("/:id", updateAppointment);
-router.delete("/:id", deleteAppointment);
+router.post("/create", authenticate, createAppointment);
+router.get("/getAll", authenticate, getAppointments);
+router.get("/:id", authenticate, getAppointmentById);
+router.put("/:id", authenticate, updateAppointment);
+router.delete("/:id", authenticate, deleteAppointment);
 
 export default router;
