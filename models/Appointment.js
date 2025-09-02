@@ -2,10 +2,14 @@ import mongoose from "mongoose";
 
 const appointmentSchema = new mongoose.Schema(
   {
-    uid: { type: String, unique: true },
+    patient: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Reference User model
+      required: true,
+    },
+    patientId: { type: String, required: true }, // Store patientId like PID-0001
     date: { type: String, required: true },
     time: { type: String, required: true },
-    patient: { type: String, required: true },
     contact: { type: String, required: true },
     services: [{ type: String }],
     temperature: { type: String },
@@ -25,11 +29,15 @@ const appointmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Auto-generate UID before saving
+// Before saving, automatically fetch patient's patientId
 appointmentSchema.pre("save", async function (next) {
-  if (!this.uid) {
-    const count = await mongoose.model("Appointment").countDocuments();
-    this.uid = `APT-${1001 + count}`; 
+  if (this.isModified("patient") || this.isNew) {
+    const User = mongoose.model("User");
+    const patientData = await User.findById(this.patient).select("patientId");
+
+    if (patientData) {
+      this.patientId = patientData.patientId; // Assign the patientId from User model
+    }
   }
   next();
 });

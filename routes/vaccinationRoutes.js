@@ -22,7 +22,7 @@ router.get("/doses/:id", authenticate, getDoseById);
 router.post("/stocks", authenticate, createStock);
 router.get("/stocks", authenticate, getStocks);
 router.get("/stocks/:id", authenticate, getStockById);
-router.put("/:id", authenticate, updateStock); // full update
+router.put("/stocks/:id", authenticate, updateStock); // full update
 router.patch("/:id", authenticate, updateStock); // partial update
 router.delete("/:id", authenticate, deleteStock);
 
