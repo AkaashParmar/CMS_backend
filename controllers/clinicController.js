@@ -53,3 +53,36 @@ export const deleteClinic = async (req, res) => {
     res.status(500).json({ message: "Error deleting clinic", error: error.message });
   }
 };
+
+//emplyee stats (companyAdmin Report)
+export const getEmployeeCountPerClinic = async (req, res) => {
+  try {
+
+    const clinics = await Clinic.aggregate([
+      {
+        $project: {
+          clinicName: 1,
+          employeeIds: {
+            $setUnion: [
+              { $cond: [{ $ifNull: ["$primaryDoctor", false] }, ["$primaryDoctor"], []] },
+              { $ifNull: ["$associatedDoctors", []] },
+              { $ifNull: ["$panelDoctors", []] },
+            ],
+          },
+        },
+      },
+      {
+        $project: {
+          clinicName: 1,
+          employeeCount: { $size: "$employeeIds" },
+        },
+      },
+    ]);
+
+    return res.status(200).json({ success: true, data: clinics });
+  } catch (error) {
+    console.error("Error fetching employee count per clinic:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
