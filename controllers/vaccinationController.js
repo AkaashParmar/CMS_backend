@@ -120,6 +120,53 @@ export const getDoseById = async (req, res) => {
   }
 };
 
+
+//vaccination stats (companyAdmin Reports)
+export const getMonthlyVaccinationStats = async (req, res) => {
+  try {
+    const stats = await VaccinationDose.aggregate([
+      {
+        $match: { status: "Completed" },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$date" },
+            month: { $month: "$date" },
+          },
+          totalDoses: { $sum: 1 },
+        },
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1,
+        },
+      },
+    ]);
+
+    // Map month numbers to month names
+    const monthNames = [
+      "", // month numbers are 1-based
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    const formattedStats = stats.map(stat => ({
+      year: stat._id.year,
+      month: monthNames[stat._id.month], // convert number to name
+      totalDoses: stat.totalDoses,
+    }));
+
+    res.status(200).json({ success: true, data: formattedStats });
+  } catch (error) {
+    console.error("Error getting monthly vaccination stats:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+
+
 // STOCK CONTROLLERS
 
 // Create Stock Entry
