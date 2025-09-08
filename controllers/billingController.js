@@ -1,4 +1,6 @@
 import Billing from "../models/Billing.js";
+import User from "../models/User.js";
+import mongoose from "mongoose";
 
 // generate billId
 const generateBillId = async () => {
@@ -61,20 +63,28 @@ export const getBills = async (req, res) => {
   }
 };
 
-// Get bill by billId
+// Get bill by billId field
 export const getBillById = async (req, res) => {
   try {
-    const bill = await Billing.findOne({ billId: req.params.billId })
+    const { billId } = req.params;
+
+    console.log("Looking for bill with billId:", billId);
+
+    const bill = await Billing.findOne({ billId })
       .populate("patientId")
       .populate("doctor", "name email profile.phoneNumber");
 
-    if (!bill) return res.status(404).json({ message: "Bill not found" });
+    if (!bill) {
+      return res.status(404).json({ message: "Bill not found" });
+    }
 
     res.json(bill);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("❌ Error in getBillById:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 //Update bill status (Paid/Unpaid)
 export const updateBillStatus = async (req, res) => {
@@ -147,7 +157,7 @@ export const addBillingItem = async (req, res) => {
 //Accountant Dashboard
 export const getRecentBills = async (req, res) => {
   try {
-    // Fetch recent bills
+
     const recentBills = await Billing.find()
       .sort({ createdAt: -1 })
       .limit(8)
@@ -158,7 +168,6 @@ export const getRecentBills = async (req, res) => {
       return res.status(404).json({ msg: "No bills found" });
     }
 
-    // Format response
     const formatted = recentBills.map((bill) => ({
       billId: bill.billId,
       patient: bill.patientId?.name || "Unknown",
@@ -168,7 +177,6 @@ export const getRecentBills = async (req, res) => {
       createdAt: bill.createdAt,
     }));
 
-    // Get counts of Paid / Unpaid
     const paidCount = await Billing.countDocuments({ status: "Paid" });
     const unpaidCount = await Billing.countDocuments({ status: "Unpaid" });
 
@@ -213,3 +221,136 @@ export const getBillingStats = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
+
+
+
+// Include the getMonthName function here or import from helper
+const getMonthName = (monthIndex) => {
+  const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return names[monthIndex] || "Unknown";
+};
+
+export const getDoctorCommissionData = async (req, res) => {
+  try {
+    let { doctor } = req.query;
+
+    if (!doctor) {
+      doctor = "All Doctors Combined";
+    }
+
+    // Fetch all doctors and map by name
+    const doctors = await User.find({ role: "doctor" });
+    const doctorMap = {};
+    doctors.forEach((doc) => {
+      doctorMap[doc.name] = doc._id;
+    });
+
+    let matchStage = {};
+    if (doctor !== "All Doctors Combined") {
+      const doctorId = doctorMap[doctor];
+      if (!doctorId) {
+        return res.status(404).json({ msg: `Doctor '${doctor}' not found` });
+      }
+      matchStage.doctor = doctorId;
+    }
+
+    const billingStats = await Billing.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            doctor: "$doctor",
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" },
+          },
+          totalRevenue: { $sum: "$amount" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id.doctor",
+          foreignField: "_id",
+          as: "doctorInfo",
+        },
+      },
+      { $unwind: "$doctorInfo" },
+      {
+        $addFields: {
+          doctorName: "$doctorInfo.name",
+          doctorShare: { $multiply: ["$totalRevenue", 0.7] },
+          clinicCommission: { $multiply: ["$totalRevenue", 0.3] },
+          monthNum: "$_id.month",
+          year: "$_id.year",
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          doctorName: 1,
+          monthNum: 1,
+          year: 1,
+          doctorShare: 1,
+          clinicCommission: 1,
+          totalRevenue: 1,
+        },
+      },
+    ]);
+
+    // Convert month numbers to names
+    billingStats.forEach((entry) => {
+      entry.month = getMonthName(entry.monthNum - 1);
+      delete entry.monthNum;
+    });
+
+    // --- Commission breakdown data
+    const commissionData = {};
+    billingStats.forEach((entry) => {
+      const { doctorName, month, doctorShare, clinicCommission } = entry;
+      if (!commissionData[doctorName]) {
+        commissionData[doctorName] = [];
+      }
+      commissionData[doctorName].push({ month, doctorShare, clinicCommission });
+    });
+
+    // --- Revenue bar chart data
+    const doctorRevenue = Object.keys(commissionData).map((doctor) => {
+      const total = commissionData[doctor].reduce(
+        (sum, item) => sum + item.doctorShare + item.clinicCommission,
+        0
+      );
+      return { doctor, revenue: Math.round(total) };
+    });
+
+    // --- Efficiency (mocked based on revenue threshold)
+    const efficiencyMap = {
+      Efficient: 0,
+      Average: 0,
+      Underperforming: 0,
+    };
+
+    doctorRevenue.forEach((doc) => {
+      if (doc.revenue >= 35000) efficiencyMap.Efficient++;
+      else if (doc.revenue <= 20000) efficiencyMap.Underperforming++;
+      else efficiencyMap.Average++;
+    });
+
+    const doctorEfficiency = Object.entries(efficiencyMap).map(
+      ([name, value]) => ({ name, value })
+    );
+
+    res.status(200).json({
+      msg: `Doctor report for ${doctor}`,
+      doctorRevenue,
+      doctorEfficiency,
+      commissionData,
+    });
+  } catch (err) {
+    console.error("❌ Error in getDoctorCommissionData:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+
+

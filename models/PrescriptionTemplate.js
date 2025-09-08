@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { v4 as uuidv4 } from "uuid"; 
+import { v4 as uuidv4 } from "uuid";
 
 const prescriptionSchema = new mongoose.Schema(
   {
@@ -8,8 +8,9 @@ const prescriptionSchema = new mongoose.Schema(
       unique: true,
       default: () => "PR-" + Date.now(),
     },
-    uid: {
-      type: String,
+    patientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
     name: { type: String, required: true },

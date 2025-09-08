@@ -3,6 +3,7 @@ import {
   createDose,
   getDoses,
   getDoseById,
+  getMonthlyVaccinationStats,
   createStock,
   getStocks,
   getStockById,
@@ -19,6 +20,8 @@ router.post("/doses", authenticate, createDose);
 router.get("/doses", authenticate, getDoses);
 router.get("/getSummary/:patientId", getPatientVaccinationSummary);
 router.get("/doses/:id", authenticate, getDoseById);
+
+router.get("/stats/monthly", authenticate, getMonthlyVaccinationStats)
 
 // Stock Routes
 router.post("/stocks", authenticate, createStock);
