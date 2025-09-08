@@ -57,14 +57,23 @@ const login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
+    const {
+      otp,
+      otpExpires,
+      resetPasswordToken,
+      resetPasswordExpires,
+      ...userData
+    } = user._doc;
+
     res.status(200).json({
       token,
-      user: { name: user.name, email: user.email, role: user.role },
+      user: userData,
     });
   } catch (err) {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
+
 
 // Create companyAdmin (accessible only by superAdmin)
 const createCompanyAdmin = async (req, res) => {

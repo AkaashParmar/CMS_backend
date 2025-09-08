@@ -4,10 +4,10 @@ const appointmentSchema = new mongoose.Schema(
   {
     patient: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Reference User model
+      ref: "User", 
       required: true,
     },
-    patientId: { type: String, required: true }, // Store patientId like PID-0001
+    patientId: { type: String, required: true }, 
     date: { type: String, required: true },
     time: { type: String, required: true },
     contact: { type: String, required: true },
@@ -24,7 +24,12 @@ const appointmentSchema = new mongoose.Schema(
       enum: ["In Person", "Over Call", "Video"],
       default: "In Person",
     },
-    doctorId: { type: String },
+    doctor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
   },
   { timestamps: true }
 );
