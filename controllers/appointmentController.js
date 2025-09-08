@@ -4,23 +4,27 @@ import User from "../models/User.js";
 // Create Appointment
 export const createAppointment = async (req, res) => {
   try {
-    const { patient, date, time, contact, services, doctorId } = req.body;
+    const { patient, date, time, contact, services, doctor } = req.body;
 
-    const patientData = await User.findById(patient).select(
-      "patientId name email"
-    );
+    // Validate patient
+    const patientData = await User.findById(patient).select("name email");
     if (!patientData) {
       return res.status(404).json({ message: "Patient not found" });
     }
 
+    // Validate doctor
+    const doctorData = await User.findById(doctor).select("name email");
+    if (!doctorData) {
+      return res.status(400).json({ message: "Doctor not found" });
+    }
+
     const appointment = new Appointment({
       patient,
-      patientId: patientData.patientId,
       date,
       time,
       contact,
       services,
-      doctorId,
+      doctor,
     });
 
     const saved = await appointment.save();
@@ -30,13 +34,14 @@ export const createAppointment = async (req, res) => {
   }
 };
 
+
 // Get All Appointments
 export const getAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find().populate(
       "patient",
       "name email patientId"
-    );
+    ).populate("doctor", "name email profile.phoneNumber");
 
     res.json(appointments);
   } catch (error) {
