@@ -59,18 +59,15 @@ export const getPatientVaccinationSummary = async (req, res) => {
   try {
     const { patientId } = req.params;
 
-    // Find patient
     const patient = await User.findById(patientId);
     if (!patient) {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    // Get doses for this patient
     const vaccineDoses = await VaccinationDose.find({ patient: patientId });
 
     const today = new Date();
 
-    // Helper: format dose details
     const formatDose = (d) => ({
       vaccine: d.vaccine,
       status: d.status,
@@ -153,14 +150,14 @@ export const getMonthlyVaccinationStats = async (req, res) => {
 
     // Map month numbers to month names
     const monthNames = [
-      "", // month numbers are 1-based
+      "",
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
     ];
 
     const formattedStats = stats.map(stat => ({
       year: stat._id.year,
-      month: monthNames[stat._id.month], // convert number to name
+      month: monthNames[stat._id.month], 
       totalDoses: stat.totalDoses,
     }));
 
