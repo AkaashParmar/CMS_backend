@@ -30,7 +30,7 @@ export const createDose = async (req, res) => {
     // Create dose record
     const dose = new VaccinationDose({
       doseId,
-      patient: patient._id,         // 👈 correct mapping
+      patient: patient._id,
       patientName: patient.name,
       ...doseData,
     });
@@ -38,16 +38,22 @@ export const createDose = async (req, res) => {
     const savedDose = await dose.save();
 
     // Update patient record with doseId
-    patient.vaccineDoses.push(savedDose._id); // 👈 push ObjectId not string
+    patient.vaccineDoses.push(savedDose._id);
     await patient.save();
 
-    res.status(201).json(savedDose);
+    const formattedDose = {
+      ...savedDose.toObject(),
+      date: savedDose.date.toISOString().split('T')[0]  
+    };
+
+    res.status(201).json(formattedDose);
+
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
 
-// Get Patient Vaccination Summary
+
 // Get Patient Vaccination Summary
 export const getPatientVaccinationSummary = async (req, res) => {
   try {
@@ -68,10 +74,10 @@ export const getPatientVaccinationSummary = async (req, res) => {
     const formatDose = (d) => ({
       vaccine: d.vaccine,
       status: d.status,
-      date: d.date.toISOString().split("T")[0], // YYYY-MM-DD
+      date: d.date.toISOString().split("T")[0],
       time: d.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       location: d.clinic,
-      givenBy: d.administeredBy || null, // only present if completed
+      givenBy: d.administeredBy || null,
     });
 
     // Categorize doses
