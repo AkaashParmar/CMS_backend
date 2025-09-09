@@ -7,6 +7,7 @@ import {
   deleteAppointment,
   getAppointmentsCount,
   getAppointmentStatusCounts,
+  getUpcomingAppointments,
 } from "../controllers/appointmentController.js";
 import authenticate from "../middleware/authmiddleware.js";
 
@@ -19,5 +20,6 @@ router.get("/status/counts", authenticate, getAppointmentStatusCounts);
 router.get("/:id", authenticate, getAppointmentById);
 router.put("/:id", authenticate, updateAppointment);
 router.delete("/:id", authenticate, deleteAppointment);
+router.get("/upcoming/:patientId", authenticate, getUpcomingAppointments);
 
 export default router;
