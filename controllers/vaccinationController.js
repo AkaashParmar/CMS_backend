@@ -43,7 +43,7 @@ export const createDose = async (req, res) => {
 
     const formattedDose = {
       ...savedDose.toObject(),
-      date: savedDose.date.toISOString().split('T')[0]  
+      date: savedDose.date.toISOString().split('T')[0]
     };
 
     res.status(201).json(formattedDose);
@@ -57,14 +57,14 @@ export const createDose = async (req, res) => {
 // Get Patient Vaccination Summary
 export const getPatientVaccinationSummary = async (req, res) => {
   try {
-    const { patientId } = req.params;
+    const { id } = req.params;
 
-    const patient = await User.findById(patientId);
+    const patient = await User.findById(id);
     if (!patient) {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    const vaccineDoses = await VaccinationDose.find({ patient: patientId });
+    const vaccineDoses = await VaccinationDose.find({ patient: id });
 
     const today = new Date();
 
@@ -157,7 +157,7 @@ export const getMonthlyVaccinationStats = async (req, res) => {
 
     const formattedStats = stats.map(stat => ({
       year: stat._id.year,
-      month: monthNames[stat._id.month], 
+      month: monthNames[stat._id.month],
       totalDoses: stat.totalDoses,
     }));
 

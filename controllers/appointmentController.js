@@ -1,5 +1,6 @@
 import Appointment from "../models/Appointment.js";
 import User from "../models/User.js";
+import mongoose from "mongoose";
 
 // Create Appointment
 export const createAppointment = async (req, res) => {
@@ -145,6 +146,37 @@ export const getAppointmentStatusCounts = async (req, res) => {
     });
 
     res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+//for patient dashboard
+export const getUpcomingAppointments = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(patientId)) {
+      return res.status(400).json({ message: "Invalid patientId" });
+    }
+
+    const todayDateString = new Date().toISOString().split('T')[0];
+
+    const appointments = await Appointment.find({
+      patient: patientId,
+      date: { $gte: todayDateString }
+    }).populate("doctor", "name")  
+      .sort({ date: 1, time: 1 });
+
+    // Map and return only required fields
+    const formattedAppointments = appointments.map(appt => ({
+      doctorName: appt.doctor.name,
+      date: appt.date,
+      time: appt.time,
+      services: appt.services
+    }));
+
+    res.status(200).json(formattedAppointments);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

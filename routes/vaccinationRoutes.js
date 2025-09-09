@@ -18,7 +18,7 @@ const router = express.Router();
 // Dose Routes
 router.post("/doses", authenticate, createDose);
 router.get("/doses", authenticate, getDoses);
-router.get("/getSummary/:patientId", getPatientVaccinationSummary);
+router.get("/getSummary/:id", getPatientVaccinationSummary);
 router.get("/doses/:id", authenticate, getDoseById);
 
 router.get("/stats/monthly", authenticate, getMonthlyVaccinationStats)
