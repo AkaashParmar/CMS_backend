@@ -8,7 +8,7 @@ const prescriptionSchema = new mongoose.Schema(
       unique: true,
       default: () => "PR-" + Date.now(),
     },
-    patientId: {
+    patient: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -17,6 +17,8 @@ const prescriptionSchema = new mongoose.Schema(
     gender: { type: String, required: true },
     age: { type: Number, required: true },
     date: { type: Date, required: true },
+    medicine: { type: String, required: true },
+    nextVisit: { type: Date, required: true },
     vitals: String,
     complaints: String,
     diagnosis: String,
@@ -45,15 +47,15 @@ const prescriptionSchema = new mongoose.Schema(
     followUp: Date,
     doctorName: String,
     doctorId: String,
-    signature: String, // store URL or base64
+    signature: String,
   },
   { timestamps: true }
 );
 
-// 🔹 Auto-generate patient UID if not provided
+// Auto-generate patient UID if not provided
 prescriptionSchema.pre("validate", function (next) {
   if (!this.uid) {
-    this.uid = "PAT-" + uuidv4().slice(0, 8); // e.g., PAT-1a2b3c4d
+    this.uid = "PAT-" + uuidv4().slice(0, 8);
   }
   next();
 });
