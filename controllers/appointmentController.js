@@ -36,6 +36,22 @@ export const createAppointment = async (req, res) => {
 };
 
 
+export const getPatientsAndDoctors = async (req, res) => {
+  try {
+    // Fetch patients
+    const patients = await User.find({ role: "patient" }).select("name patientId");
+
+    // Fetch doctors
+    const doctors = await User.find({ role: "doctor" }).select("name registrationNo");
+
+    // Return both in a single response
+    res.status(200).json({ patients, doctors });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 // Get All Appointments
 export const getAppointments = async (req, res) => {
   try {
