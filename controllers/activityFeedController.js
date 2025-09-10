@@ -3,6 +3,9 @@ import StockOut from "../models/StockOut.js";
 import Clinic from "../models/Clinic.js";
 import LabTest from "../models/LabResult.js";
 import Drug from "../models/Drug.js";
+import Prescription from "../models/PrescriptionTemplate.js";
+import Appointment from "../models/Appointment.js";
+import User from "../models/User.js";
 
 export const getActivityFeed = async (req, res) => {
     try {
@@ -101,6 +104,29 @@ export const getMonthlyBillingTrend = async (req, res) => {
     res.status(200).json({ labels, data });
   } catch (error) {
     console.error("Error fetching monthly billing trend:", error);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+export const getSummaryStats = async (req, res) => {
+  try {
+    const [doctorCount, patientCount, appointmentCount, prescriptionCount, labTestCount] = await Promise.all([
+      User.countDocuments({ role: "doctor" }),
+      User.countDocuments({ role: "patient" }),
+      Appointment.countDocuments(),
+      Prescription.countDocuments(),
+      LabTest.countDocuments(),
+    ]);
+
+    res.status(200).json({
+      doctors: doctorCount,
+      patients: patientCount,
+      appointments: appointmentCount,
+      prescriptions: prescriptionCount,
+      labTests: labTestCount,
+    });
+  } catch (error) {
+    console.error("Error fetching summary stats:", error);
     res.status(500).json({ msg: "Server error" });
   }
 };
