@@ -43,7 +43,7 @@ router.post(
 router.get("/getProfile", authenticate, getUsersByCompanyAdmin);
 router.get("/getProfile/:id", authenticate, getUserProfileById);
 
-router.put("/updateProfile", authenticate, updateProfile);
+router.put("/updateProfile", upload.single("photo"), authenticate, updateProfile);
 
 //this is for both(superAdmin and companyAdmin)
 router.post("/forgot-password", forgotPassword);
