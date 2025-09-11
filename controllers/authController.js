@@ -185,9 +185,13 @@ const createUserByCompanyAdmin = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    let profile = { ...profileData };
+    let profile = {};
 
-    // Cloudinary Upload for photo
+    if (req.body.profile) {
+      profile = typeof req.body.profile === 'string' ? JSON.parse(req.body.profile) : req.body.profile;
+    }
+
+    // Handle photo upload
     if (req.file && req.file.path) {
       const resultCloud = await cloudinary.uploader.upload(req.file.path, {
         folder: "profiles",
@@ -197,7 +201,6 @@ const createUserByCompanyAdmin = async (req, res) => {
       profile.photo = resultCloud.secure_url;
     }
 
-    // Generate Patient ID if role = patient
     let patientId;
     if (role === "patient") {
       const lastPatient = await User.findOne({ role: "patient" })
@@ -218,7 +221,7 @@ const createUserByCompanyAdmin = async (req, res) => {
       role,
       registrationNo: role === "doctor" ? registrationNo : undefined,
       patientId: role === "patient" ? patientId : undefined,
-      profile: req.body.profile,
+      profile,
       createdBy: req.user.id,
     });
 
@@ -298,7 +301,6 @@ const getUserProfileById = async (req, res) => {
   }
 };
 
-// updateProfile
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -308,35 +310,21 @@ const updateProfile = async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    if (
-      !["doctor", "labTechnician", "patient", "accountant"].includes(user.role)
-    ) {
+    if (!["doctor", "labTechnician", "patient", "accountant"].includes(user.role)) {
       return res.status(403).json({ msg: "Not authorized to update profile" });
     }
 
-    const {
-      fullName,
-      email,
-      phoneNumber,
-      gender,
-      dob,
-      department,
-      ...profileFields
-    } = req.body;
+    const { phoneNumber, department } = req.body || {};
+    const profileFields = req.body?.profile ? JSON.parse(req.body.profile) : {};
 
-    // Update root-level fields
-    if (fullName) user.fullName = fullName;
-    if (email) user.email = email;
     if (phoneNumber) user.phoneNumber = phoneNumber;
-    if (gender) user.gender = gender;
-    if (dob) user.dob = dob;
     if (department) user.department = department;
 
-    // Update nested profile fields
+    // Merge profile updates safely
     user.profile = { ...user.profile, ...profileFields };
 
-    // Cloudinary Upload
-    if (req.file && req.file.path) {
+    // Upload photo if provided
+    if (req.file?.path) {
       const resultCloud = await cloudinary.uploader.upload(req.file.path, {
         folder: "profiles",
       });
@@ -354,6 +342,7 @@ const updateProfile = async (req, res) => {
     res.status(500).json({ msg: err.message });
   }
 };
+
 
 // User Roles Distribution (SuperAdmin)
 const getUserStats = async (req, res) => {

@@ -17,13 +17,13 @@ export const getActivityFeed = async (req, res) => {
             if (bill.status === "Paid") {
                 feed.push({
                     type: "success",
-                    message: `✔ Payment of ₹${bill.amount} received for patient "${bill.patientId}"`,
+                    message: `Payment of ₹${bill.amount} received for patient "${bill.patientId}"`,
                     date: bill.createdAt,
                 });
             } else {
                 feed.push({
                     type: "warning",
-                    message: `⚠️ Payment pending of ₹${bill.dueBalance} for patient "${bill.patientId}"`,
+                    message: `Payment pending of ₹${bill.dueBalance} for patient "${bill.patientId}"`,
                     date: bill.createdAt,
                 });
             }
@@ -35,13 +35,13 @@ export const getActivityFeed = async (req, res) => {
             if (stock.quantityAfter < 10) {
                 feed.push({
                     type: "warning",
-                    message: `⚠️ Low stock on "${stock.stockItem}"`,
+                    message: `Low stock on "${stock.stockItem}"`,
                     date: stock.createdAt,
                 });
             } else {
                 feed.push({
                     type: "success",
-                    message: `✔ Inventory updated for "${stock.stockItem}"`,
+                    message: `Inventory updated for "${stock.stockItem}"`,
                     date: stock.createdAt,
                 });
             }
@@ -52,7 +52,7 @@ export const getActivityFeed = async (req, res) => {
         recentDrugs.forEach((drug) => {
             feed.push({
                 type: "info",
-                message: `✔ New drug "${drug.name}" added to inventory`,
+                message: `New drug "${drug.name}" added to inventory`,
                 date: drug.createdAt,
             });
         });
