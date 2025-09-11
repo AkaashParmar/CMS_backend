@@ -18,6 +18,8 @@ import stockCategoryRoutes from "./routes/stockCategoryRoutes.js";
 import consultationRoutes from "./routes/consultationRoutes.js";
 import activityFeedRoutes from "./routes/activityFeedRoutes.js";
 
+import serviceRoutes from "./routes/serviceRoutes.js";
+
 
 
 dotenv.config();
@@ -48,6 +50,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/stockOut", stockOutRoutes);
 app.use("/api/stockCategory", stockCategoryRoutes);
 app.use("/api/activity-feed", activityFeedRoutes);
+app.use("/api/services", serviceRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
