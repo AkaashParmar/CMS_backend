@@ -14,11 +14,10 @@ const onlineSlotSchema = new mongoose.Schema(
 
 const clinicSchema = new mongoose.Schema(
   {
-    // Step 1: Basic Information
-    clinicName: { type: String, required: true },
+    clinicName: { type: String, required: true, unique: true },
     contact1: { type: String },
     contact2: { type: String },
-    email: { type: String },
+    email: { type: String, unique: true },
     prescriptionRequired: { type: Boolean, default: false },
     minPayment: { type: Number, default: 0 },
     paymentOption: {
@@ -30,14 +29,10 @@ const clinicSchema = new mongoose.Schema(
     followUpCharge: { type: Number, default: 0 },
     followUpValidity: { type: Number, default: 0 }, // days
     subsequentCharge: { type: Number, default: 0 },
-
-    // Step 2: Contact Info
     address: { type: String },
     area: { type: String },
     pincode: { type: String },
-    geoLocation: { type: String }, // optional for google maps
-
-    // Step 3: Timings
+    geoLocation: { type: String }, 
     slotDuration: { type: Number, default: 15 },
     blockConfirmed: { type: Boolean, default: false },
     blockAfterMinutes: { type: Number, default: 0 },
@@ -46,14 +41,10 @@ const clinicSchema = new mongoose.Schema(
       morning: onlineSlotSchema,
       evening: onlineSlotSchema,
     },
-
-    // Step 4: Tele/Video
     blockTele: { type: Boolean, default: false },
     teleFee: { type: Number, default: 0 },
     blockVideo: { type: Boolean, default: false },
     videoFee: { type: Number, default: 0 },
-
-    // Existing relationships
     primaryDoctor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     associatedDoctors: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     panelDoctors: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],

@@ -95,6 +95,7 @@ const createCompanyAdmin = async (req, res) => {
       email,
       password: hashedPassword,
       role: "companyAdmin",
+      profile: req.body.profile
     });
 
     res
@@ -217,7 +218,7 @@ const createUserByCompanyAdmin = async (req, res) => {
       role,
       registrationNo: role === "doctor" ? registrationNo : undefined,
       patientId: role === "patient" ? patientId : undefined,
-      profile,
+      profile: req.body.profile,
       createdBy: req.user.id,
     });
 

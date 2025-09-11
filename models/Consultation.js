@@ -2,7 +2,12 @@ import mongoose from "mongoose";
 
 const consultationSchema = new mongoose.Schema(
   {
-    patient: { type: String, required: true },
+    consultationId: { type: String, unique: true }, 
+    patient: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     services: { type: [String], required: true },
     details: { type: String, required: true },
     temperature: { type: String, required: true },
@@ -14,11 +19,12 @@ const consultationSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true, // companyAdmin ID
+      required: true,
     },
   },
   { timestamps: true }
 );
+
 
 const Consultation = mongoose.model("Consultation", consultationSchema);
 export default Consultation;

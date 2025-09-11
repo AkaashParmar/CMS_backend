@@ -1,10 +1,11 @@
 import express from "express";
-import { createConsultation } from "../controllers/consultationController.js";
+import { createConsultation, getConsultations } from "../controllers/consultationController.js";
 import authenticate from "../middleware/authmiddleware.js";
 
 const router = express.Router();
 
-// Only logged-in companyAdmin can create
-router.post("/", authenticate, createConsultation);
+router.post("/create", authenticate, createConsultation);
+router.get("/get", authenticate, getConsultations);
+
 
 export default router;
