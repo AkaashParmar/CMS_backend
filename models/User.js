@@ -38,12 +38,21 @@ const userSchema = new mongoose.Schema(
       },
     },
 
-    patientId: { type: String, unique: true },
+    patientId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      required: function () {
+        return this.role === "patient";
+      }
+    },
 
     // Extra fields for EditProfile
     profile: {
       dob: Date,
       placeOfBirth: String,
+      department: String,
+      companyName: String,
       gender: String,
       phoneNumber: String,
       emergencyPhoneNumber: String,
