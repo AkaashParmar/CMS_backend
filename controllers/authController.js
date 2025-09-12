@@ -273,6 +273,26 @@ const getUsersByCompanyAdmin = async (req, res) => {
   }
 };
 
+const deleteUserByCompanyAdmin = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Ensure the user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({ msg: "User deleted successfully" });
+  } catch (err) {
+    console.error("Delete user error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+
 // get single user profile created by the logged-in companyAdmin
 const getUserProfileById = async (req, res) => {
   try {
@@ -420,6 +440,7 @@ export {
   resetPasswordWithOTP,
   createUserByCompanyAdmin,
   getUsersByCompanyAdmin,
+  deleteUserByCompanyAdmin,
   getUserProfileById,
   updateProfile,
   getUserStats,
