@@ -10,6 +10,7 @@ import {
   updateStock,
   deleteStock,
   getPatientVaccinationSummary,
+  getPatientsDoctorsClinics,
 } from "../controllers/vaccinationController.js";
 import authenticate from "../middleware/authmiddleware.js";
 
@@ -22,6 +23,7 @@ router.get("/getSummary/:id", getPatientVaccinationSummary);
 router.get("/doses/:id", authenticate, getDoseById);
 
 router.get("/stats/monthly", authenticate, getMonthlyVaccinationStats)
+router.get("/patients-doctors-clinics", authenticate, getPatientsDoctorsClinics);
 
 // Stock Routes
 router.post("/stocks", authenticate, createStock);

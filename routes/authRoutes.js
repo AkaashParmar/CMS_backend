@@ -51,7 +51,7 @@ router.delete(
   deleteUserByCompanyAdmin
 );
 
-router.put("/updateProfile", upload.single("photo"), authenticate, updateProfile);
+router.put("/updateProfile/:id", upload.single("photo"), authenticate, updateProfile);
 
 //this is for both(superAdmin and companyAdmin)
 router.post("/forgot-password", forgotPassword);

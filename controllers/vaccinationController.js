@@ -1,6 +1,7 @@
 import VaccinationDose from "../models/VaccinationDose.js";
 import VaccinationStock from "../models/VaccinationStock.js";
 import User from "../models/User.js";
+import Clinic from "../models/Clinic.js";
 
 // Auto-generate Dose ID
 const generateDoseId = async () => {
@@ -105,12 +106,26 @@ export const getPatientVaccinationSummary = async (req, res) => {
 // Get All Dose Records
 export const getDoses = async (req, res) => {
   try {
-    const doses = await VaccinationDose.find();
-    res.json(doses);
+    const doses = await VaccinationDose.find()
+      .populate("patient", "name patientId")                   // fetch patient name
+      .populate("administeredBy", "name registrationNo")       // fetch doctor name
+      .populate("clinic", "clinicName");                       // fetch clinic name
+
+    const formatted = doses.map(d => ({
+      ...d.toObject(),
+      date: d.date.toISOString().split("T")[0],
+      patientName: d.patient?.name || "-",
+      doctorName: d.administeredBy?.name || "-",              // <-- map doctor name here
+      clinicName: d.clinic?.clinicName || "-",
+    }));
+
+    res.json(formatted);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
+
 
 // Get Single Dose
 export const getDoseById = async (req, res) => {
@@ -165,6 +180,24 @@ export const getMonthlyVaccinationStats = async (req, res) => {
   } catch (error) {
     console.error("Error getting monthly vaccination stats:", error);
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+export const getPatientsDoctorsClinics = async (req, res) => {
+  try {
+    // Fetch patients
+    const patients = await User.find({ role: "patient" }, { name: 1, patientId: 1, _id: 1 });
+
+    // Fetch doctors
+    const doctors = await User.find({ role: "doctor" }, { name: 1, registrationNo: 1, _id: 1 });
+
+    // Fetch clinics
+    const clinics = await Clinic.find({}, { clinicName: 1, _id: 1 });
+
+    res.status(200).json({ patients, doctors, clinics });
+  } catch (error) {
+    console.error("Error fetching entities:", error);
+    res.status(500).json({ message: "Server error while fetching patients, doctors, and clinics" });
   }
 };
 
