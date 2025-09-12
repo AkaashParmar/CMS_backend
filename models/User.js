@@ -54,6 +54,7 @@ const userSchema = new mongoose.Schema(
       department: String,
       companyName: String,
       companyStatus: String,
+      supervisorName: String,
       gender: String,
       phoneNumber: String,
       emergencyPhoneNumber: String,

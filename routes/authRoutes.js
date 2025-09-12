@@ -5,6 +5,7 @@ import {
   createCompanyAdmin,
   createUserByCompanyAdmin,
   getUsersByCompanyAdmin,
+  deleteUserByCompanyAdmin,
   getUserProfileById,
   forgotPassword,
   resetPasswordWithOTP,
@@ -42,6 +43,13 @@ router.post(
 
 router.get("/getProfile", authenticate, getUsersByCompanyAdmin);
 router.get("/getProfile/:id", authenticate, getUserProfileById);
+
+router.delete(
+  "/delete-user/:id",
+  authenticate,
+  authorizeRoles("companyAdmin"),
+  deleteUserByCompanyAdmin
+);
 
 router.put("/updateProfile", upload.single("photo"), authenticate, updateProfile);
 
