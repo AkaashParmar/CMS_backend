@@ -296,7 +296,7 @@ const deleteUserByCompanyAdmin = async (req, res) => {
 // get single user profile created by the logged-in companyAdmin
 const getUserProfileById = async (req, res) => {
   try {
-    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
+    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant", "companyAdmin"];
     const { id } = req.params;
 
     const user = await User.findOne({
@@ -330,7 +330,7 @@ const updateProfile = async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    if (!["doctor", "labTechnician", "patient", "accountant"].includes(user.role)) {
+    if (!["doctor", "labTechnician", "patient", "accountant", "companyAdmin"].includes(user.role)) {
       return res.status(403).json({ msg: "Not authorized to update profile" });
     }
 

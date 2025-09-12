@@ -1,5 +1,6 @@
 import Consultation from "../models/Consultation.js";
 import User from "../models/User.js";
+import Billing from "../models/Billing.js"; 
 
 
 export const createConsultation = async (req, res) => {
@@ -86,4 +87,89 @@ export const getConsultations = async (req, res) => {
     });
   }
 };
+
+
+export const getConsultationBilling = async (req, res) => {
+  try {
+    const billings = await Billing.find()
+      .populate("patientId", "name") // populate patient's name
+      .populate("doctor", "name") // populate doctor's name
+      .sort({ date: -1 }); // optional: latest first
+
+    // Format the response
+    const response = billings.map((bill) => ({
+      consultationId: bill.billId,
+      patient: bill.patientId?.name || "N/A",
+      doctor: bill.doctor?.name || "N/A",
+      department: bill.service,
+      date: bill.date.toISOString().split("T")[0], 
+      method: "N/A", 
+      amount: bill.amount,
+      status: bill.status,
+    }));
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching billing:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export const getBillingSummary = async (req, res) => {
+  try {
+    const records = await Consultation.find();
+
+    const totalConsultations = records.length;
+
+    const totalCollected = records
+      .filter(r => r.status === 'Paid')
+      .reduce((sum, r) => sum + r.amount, 0);
+
+    const pendingCollection = records
+      .filter(r => r.status === 'Pending')
+      .reduce((sum, r) => sum + r.amount, 0);
+
+    res.status(200).json({
+      totalConsultations,
+      totalCollected,
+      pendingCollection
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error while fetching billing summary' });
+  }
+};
+
+
+export const getPaymentSummary = async (req, res) => {
+  try {
+    const records = await Consultation.find();
+
+    // Payment distribution
+    const paidCount = records.filter(r => r.status === 'Paid').length;
+    const pendingCount = records.filter(r => r.status === 'Pending').length;
+
+    const paymentDistribution = {
+      Paid: paidCount,
+      Pending: pendingCount,
+    };
+
+    // Revenue by department (Paid only)
+    const revenueByDepartment = records.reduce((acc, record) => {
+      if (record.status === 'Paid') {
+        acc[record.department] = (acc[record.department] || 0) + record.amount;
+      }
+      return acc;
+    }, {});
+
+    res.status(200).json({
+      paymentDistribution,
+      revenueByDepartment
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error while fetching payment summary' });
+  }
+};
+
 
