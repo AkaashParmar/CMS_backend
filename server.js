@@ -19,6 +19,7 @@ import consultationRoutes from "./routes/consultationRoutes.js";
 import activityFeedRoutes from "./routes/activityFeedRoutes.js";
 import progressRoutes from "./routes/progressRoutes.js";  
 import serviceRoutes from "./routes/serviceRoutes.js";
+import medicalServiceRoutes from './routes/medicalServiceRoutes.js';
 
 
 
@@ -51,7 +52,8 @@ app.use("/api/stockOut", stockOutRoutes);
 app.use("/api/stockCategory", stockCategoryRoutes);
 app.use("/api/activity-feed", activityFeedRoutes);
 app.use("/api/services", serviceRoutes);
-app.use("/api/progress", progressRoutes); 
+app.use("/api/progress", progressRoutes);
+app.use('/api/medical', medicalServiceRoutes); 
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
