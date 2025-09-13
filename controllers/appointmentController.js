@@ -26,6 +26,7 @@ export const createAppointment = async (req, res) => {
       contact,
       services,
       doctor,
+      createdBy: req.user.id,
     });
 
     const saved = await appointment.save();
@@ -181,7 +182,7 @@ export const getUpcomingAppointments = async (req, res) => {
     const appointments = await Appointment.find({
       patient: patientId,
       date: { $gte: todayDateString }
-    }).populate("doctor", "name")  
+    }).populate("doctor", "name")
       .sort({ date: 1, time: 1 });
 
     // Map and return only required fields

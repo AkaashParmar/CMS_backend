@@ -5,6 +5,8 @@ import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
 import cloudinary from "../config/cloudinary-config.js";
 import fs from "fs";
+import Billing from '../models/Billing.js';
+import mongoose from "mongoose";
 
 const register = async (req, res) => {
   try {
@@ -51,6 +53,10 @@ const login = async (req, res) => {
       return res.status(400).json({ msg: "Invalid email, role, or password" });
     }
 
+    // ✅ Update lastLogin
+    user.lastLogin = new Date();
+    await user.save();
+
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -62,6 +68,7 @@ const login = async (req, res) => {
       otpExpires,
       resetPasswordToken,
       resetPasswordExpires,
+      password: userPassword, // optional: remove password
       ...userData
     } = user._doc;
 
@@ -74,12 +81,11 @@ const login = async (req, res) => {
   }
 };
 
-
-// Create companyAdmin (accessible only by superAdmin)
 const createCompanyAdmin = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    // Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res
@@ -89,20 +95,147 @@ const createCompanyAdmin = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user with role companyAdmin
+    // Initialize profile
+    let profile = {};
+    if (req.body.profile) {
+      profile =
+        typeof req.body.profile === "string"
+          ? JSON.parse(req.body.profile)
+          : req.body.profile;
+    }
+
+    // Handle photo upload
+    if (req.file && req.file.path) {
+      const resultCloud = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profiles",
+      });
+
+      fs.unlinkSync(req.file.path); // remove local file
+      profile.photo = resultCloud.secure_url;
+    }
+
+    // Create companyAdmin
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
       role: "companyAdmin",
-      profile: req.body.profile
+      profile,
     });
 
-    res
-      .status(201)
-      .json({ msg: "Company admin created successfully", userId: newUser._id });
+    res.status(201).json({
+      msg: "Company admin created successfully",
+      userId: newUser._id,
+      profile: newUser.profile,
+    });
   } catch (err) {
+    console.error("Create companyAdmin error:", err);
     res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+
+// Update Company Admin
+const updateCompanyAdmin = async (req, res) => {
+  try {
+    const { id } = req.params; // companyAdmin ID to update
+    const { name, email, password } = req.body;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ msg: "Invalid company admin ID" });
+    }
+
+    // Find existing user
+    const existingUser = await User.findById(id);
+    if (!existingUser || existingUser.role !== "companyAdmin") {
+      return res.status(404).json({ msg: "Company admin not found" });
+    }
+
+    // Prepare updated fields
+    const updateData = {};
+
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
+
+    // Handle profile updates
+    let profile = existingUser.profile || {};
+    if (req.body.profile) {
+      const incomingProfile =
+        typeof req.body.profile === "string"
+          ? JSON.parse(req.body.profile)
+          : req.body.profile;
+      profile = { ...profile, ...incomingProfile };
+    }
+
+    // Handle photo upload
+    if (req.file && req.file.path) {
+      const resultCloud = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profiles",
+      });
+      fs.unlinkSync(req.file.path);
+      profile.photo = resultCloud.secure_url;
+    }
+
+    updateData.profile = profile;
+
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(id, updateData, {
+      new: true,
+    }).select("-password");
+
+    res.status(200).json({
+      msg: "Company admin updated successfully",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("Update companyAdmin error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+const getCompanyAdmins = async (req, res) => {
+  try {
+    // Fetch users with role "companyAdmin"
+    const companyAdmins = await User.find({ role: "companyAdmin" }).select(
+      "-password"
+    );
+
+    res.status(200).json({
+      success: true,
+      count: companyAdmins.length,
+      data: companyAdmins,
+    });
+  } catch (err) {
+    console.error("Get companyAdmins error:", err);
+    res.status(500).json({ success: false, msg: "Server error", error: err.message });
+  }
+};
+
+// Get single companyAdmin by ID
+const getCompanyAdminById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, msg: "Invalid ID" });
+    }
+
+    const admin = await User.findOne({ _id: id, role: "companyAdmin" }).select("-password");
+
+    if (!admin) {
+      return res.status(404).json({ success: false, msg: "Company admin not found" });
+    }
+
+    res.status(200).json({ success: true, data: admin });
+  } catch (err) {
+    console.error("Get companyAdmin by ID error:", err);
+    res.status(500).json({ success: false, msg: "Server error", error: err.message });
   }
 };
 
@@ -400,42 +533,134 @@ const getUserStats = async (req, res) => {
   }
 };
 
-// Get total patients under a specific companyAdmin (clinic)
-const getPatientCountByCompanyAdmin = async (req, res) => {
+const getPatientsForCompanyAdmin = async (req, res) => {
   try {
-    // only superAdmin allowed
+    // Check that the requester is superAdmin
     if (req.user.role !== "superAdmin") {
-      return res.status(403).json({
-        message: "Access denied. Only superAdmin can fetch patient counts."
-      });
+      return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    const { companyAdminId } = req.params; // from route param
-
-    // count patients created by that companyAdmin
-    const patientCount = await User.countDocuments({
-      createdBy: companyAdminId,
-      role: "patient",
-    });
+    const patients = await User.find({ role: "patient" })
+      .populate("createdBy", "name email")
+      .select("name email patientId createdBy");
 
     res.status(200).json({
       success: true,
-      companyAdminId,
-      patientCount,
+      patients: patients.map((patient) => ({
+        patientName: patient.name,
+        patientEmail: patient.email,
+        patientId: patient.patientId,
+        companyAdmin: patient.createdBy
+          ? {
+            name: patient.createdBy.name,
+            email: patient.createdBy.email,
+          }
+          : null,
+      })),
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Server Error",
-      error: error.message,
-    });
+    console.error("Error fetching patients for superAdmin:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
+const getCompanyAdminRevenue = async (req, res) => {
+  try {
+    const companyAdminId = req.user.id;
+    console.log('CompanyAdminId:', companyAdminId);
+
+    const result = await Billing.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "patientId",
+          foreignField: "_id",
+          as: "patient"
+        }
+      },
+      { $unwind: "$patient" },
+      {
+        $match: { "patient.createdBy": new mongoose.Types.ObjectId(companyAdminId) }
+
+      },
+      {
+        $group: {
+          _id: "$patient.createdBy",
+          totalRevenue: { $sum: "$amount" }
+        }
+      }
+    ]);
+
+    console.log('Aggregation Result:', result);
+
+    const totalRevenue = result.length > 0 ? result[0].totalRevenue : 0;
+
+    res.status(200).json({
+      success: true,
+      totalRevenue
+    });
+  } catch (error) {
+    console.error('Aggregation Error:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+const getMonthlyLoginStats = async (req, res) => {
+  try {
+    const matchFilter = {
+      role: { $in: ["patient", "doctor", "companyAdmin", "accountant"] },
+      lastLogin: { $exists: true },
+    };
+
+    if (req.user.role === "companyAdmin") {
+      matchFilter.createdBy = mongoose.Types.ObjectId(req.user.id);
+    }
+
+    const stats = await User.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: { $month: "$lastLogin" },
+          logins: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          monthNumber: "$_id",
+          logins: 1,
+          _id: 0,
+        },
+      },
+      { $sort: { monthNumber: 1 } },
+    ]);
+
+    // Convert month number to month name
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    const formattedStats = stats.map(stat => ({
+      month: monthNames[stat.monthNumber - 1],
+      logins: stat.logins
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedStats,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, msg: "Server error", error: err.message });
+  }
+};
 
 export {
   register,
   login,
   createCompanyAdmin,
+  updateCompanyAdmin,
+  getCompanyAdmins,
+  getCompanyAdminById,
   forgotPassword,
   resetPasswordWithOTP,
   createUserByCompanyAdmin,
@@ -444,5 +669,7 @@ export {
   getUserProfileById,
   updateProfile,
   getUserStats,
-  getPatientCountByCompanyAdmin,
+  getPatientsForCompanyAdmin,
+  getCompanyAdminRevenue,
+  getMonthlyLoginStats,
 };

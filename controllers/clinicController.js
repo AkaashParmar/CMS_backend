@@ -1,15 +1,19 @@
 import Clinic from "../models/Clinic.js";
 
-// Create new clinic
 export const createClinic = async (req, res) => {
   try {
-    const clinic = new Clinic(req.body);
+    const clinic = new Clinic({
+      ...req.body,
+      createdBy: req.user.id,  
+    });
+
     await clinic.save();
     res.status(201).json({ message: "Clinic created successfully", clinic });
   } catch (error) {
     res.status(400).json({ message: "Error creating clinic", error: error.message });
   }
 };
+
 
 // Get all clinics
 export const getClinics = async (req, res) => {

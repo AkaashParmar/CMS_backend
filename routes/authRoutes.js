@@ -3,6 +3,9 @@ import {
   register,
   login,
   createCompanyAdmin,
+  updateCompanyAdmin,
+  getCompanyAdmins,
+  getCompanyAdminById,
   createUserByCompanyAdmin,
   getUsersByCompanyAdmin,
   deleteUserByCompanyAdmin,
@@ -11,7 +14,9 @@ import {
   resetPasswordWithOTP,
   updateProfile,
   getUserStats,
-  getPatientCountByCompanyAdmin,
+  getPatientsForCompanyAdmin,
+  getCompanyAdminRevenue,
+  getMonthlyLoginStats,
 } from "../controllers/authController.js";
 import authenticate from "../middleware/authmiddleware.js";
 import authorizeRoles from "../middleware/authorizeRolemiddleware.js";
@@ -27,9 +32,27 @@ router.post("/login", login);
 // here you can create companyAdmin
 router.post(
   "/create-admin",
+  upload.single("photo"),
   authenticate,
   authorizeRoles("superAdmin"),
   createCompanyAdmin
+);
+
+router.put(
+  "/update-admin/:id",
+  upload.single("photo"),
+  authenticate,
+  authorizeRoles("superAdmin"),
+  updateCompanyAdmin
+);
+
+router.get("/get-admins", authenticate, authorizeRoles("superAdmin"), getCompanyAdmins);
+
+router.get(
+  "/get-admins/:id",
+  authenticate,
+  authorizeRoles("superAdmin"),
+  getCompanyAdminById
 );
 
 // for patient, doctor, labTech, accountant
@@ -61,8 +84,18 @@ router.get("/stats", authenticate, authorizeRoles("superAdmin"), getUserStats);
 router.get(
   "/patients",
   authenticate,
-  authorizeRoles("superAdmin"),
-  getPatientCountByCompanyAdmin
+  getPatientsForCompanyAdmin
+);
+router.get(
+  "/revenue",
+  authenticate,
+  getCompanyAdminRevenue
+);
+
+router.get(
+  "/monthly-logins",
+  authenticate,
+  getMonthlyLoginStats
 );
 
 export default router;

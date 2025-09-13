@@ -33,6 +33,7 @@ const billingSchema = new mongoose.Schema(
     items: [itemSchema],
     dueBalance: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );

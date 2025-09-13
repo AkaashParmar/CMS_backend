@@ -32,7 +32,7 @@ const clinicSchema = new mongoose.Schema(
     address: { type: String },
     area: { type: String },
     pincode: { type: String },
-    geoLocation: { type: String }, 
+    geoLocation: { type: String },
     slotDuration: { type: Number, default: 15 },
     blockConfirmed: { type: Boolean, default: false },
     blockAfterMinutes: { type: Number, default: 0 },
@@ -48,6 +48,7 @@ const clinicSchema = new mongoose.Schema(
     primaryDoctor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     associatedDoctors: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     panelDoctors: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );

@@ -54,6 +54,8 @@ const userSchema = new mongoose.Schema(
       department: String,
       companyName: String,
       companyStatus: String,
+      website: String,
+      subdomain: String,
       supervisorName: String,
       gender: String,
       phoneNumber: String,
@@ -90,6 +92,8 @@ const userSchema = new mongoose.Schema(
 
     otp: String,
     otpExpires: Date,
+    lastLogin: { type: Date }
+
   },
   { timestamps: true }
 );
