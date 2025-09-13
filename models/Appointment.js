@@ -4,7 +4,7 @@ const appointmentSchema = new mongoose.Schema(
   {
     patient: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", 
+      ref: "User",
       required: true,
     },
     // patientId: { type: String, required: true }, 
@@ -25,6 +25,11 @@ const appointmentSchema = new mongoose.Schema(
       default: "In Person",
     },
     doctor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,

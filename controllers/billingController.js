@@ -40,6 +40,7 @@ export const createBilling = async (req, res) => {
       amount: totalDueBalance,
       items: processedItems,
       dueBalance: totalDueBalance,
+      createdBy: req.user.id,
     });
 
     const saved = await billing.save();
@@ -129,6 +130,7 @@ export const addBillingItem = async (req, res) => {
       description,
       price,
       createdAt: new Date(),
+      createdBy: req.user.id,
     };
 
     // Push new item

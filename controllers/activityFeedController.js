@@ -6,6 +6,7 @@ import Drug from "../models/Drug.js";
 import Prescription from "../models/PrescriptionTemplate.js";
 import Appointment from "../models/Appointment.js";
 import User from "../models/User.js";
+import PatientReport from "../models/Report.js";
 
 export const getActivityFeed = async (req, res) => {
     try {
@@ -128,5 +129,68 @@ export const getSummaryStats = async (req, res) => {
   } catch (error) {
     console.error("Error fetching summary stats:", error);
     res.status(500).json({ msg: "Server error" });
+  }
+};
+
+
+export const getDashboardActivity = async (req, res) => {
+  try {
+    const activity = [];
+
+    // 1. Recent user creations
+    const users = await User.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("name role createdAt");
+    users.forEach((u) => {
+      activity.push({
+        message: `User ${u.name} (${u.role}) created`,
+        date: u.createdAt,
+      });
+    });
+
+    // 2. Recent patient reports uploaded
+    const reports = await PatientReport.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("uploadedBy", "name");
+    reports.forEach((r) => {
+      activity.push({
+        message: `${r.uploadedBy?.name || "Someone"} submitted report "${r.name}"`,
+        date: r.createdAt,
+      });
+    });
+
+    // 3. Recent prescriptions created
+    const prescriptions = await Prescription.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("patient", "name");
+    prescriptions.forEach((p) => {
+      activity.push({
+        message: `Prescription created for ${p.patient?.name || "Unknown patient"}`,
+        date: p.createdAt,
+      });
+    });
+
+    // 4. Recent clinic updates (example: name changed or report submitted)
+    const clinics = await Clinic.find()
+      .sort({ updatedAt: -1 })
+      .limit(5)
+      .select("clinicName updatedAt");
+    clinics.forEach((c) => {
+      activity.push({
+        message: `Clinic "${c.clinicName}" details updated`,
+        date: c.updatedAt,
+      });
+    });
+
+    // Optional: merge, sort by date descending
+    activity.sort((a, b) => b.date - a.date);
+
+    res.status(200).json({ activity });
+  } catch (error) {
+    console.error("Error fetching dashboard activity:", error);
+    res.status(500).json({ msg: "Server error fetching dashboard activity" });
   }
 };
