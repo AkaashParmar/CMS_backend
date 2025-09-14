@@ -1,6 +1,8 @@
 import express from "express";
 import {
   createIssue,
+  getIssuesForCompanyAdmin,
+  getOwnIssues,
   getIssues,
   getFilteredIssues,
   getIssueById,
@@ -17,6 +19,8 @@ import authenticate from "../middleware/authmiddleware.js";
 const router = express.Router();
 
 router.post("/", authenticate, createIssue);
+router.get("/getissue", authenticate, getIssuesForCompanyAdmin);
+router.get("/getOwn", authenticate, getOwnIssues);
 router.get("/", authenticate, getIssues);
 router.get("/issue", authenticate, getFilteredIssues);
 router.get("/:id", authenticate, getIssueById);

@@ -354,5 +354,30 @@ export const getDoctorCommissionData = async (req, res) => {
   }
 };
 
+export const revenuePerMonth = async (req, res) => {
+  try {
+    const result = await Billing.aggregate([
+      { $match: { status: "Paid" } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },  // Fixed field name
+          monthlyRevenue: { $sum: "$amount" },
+        },
+      },
+      { $sort: { "_id": 1 } },  // Sort by ascending month
+    ]);
+
+    res.status(200).json({
+      msg: "Monthly revenue data fetched successfully",
+      revenuePerMonth: result,
+    });
+  } catch (err) {
+    console.error("❌ Error in revenuePerMonth:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+
+
 
 
