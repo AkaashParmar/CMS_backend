@@ -72,6 +72,54 @@ export const getIssues = async (req, res) => {
   }
 };
 
+export const getFilteredIssues = async (req, res) => {
+  try {
+    const { status, search, reporterType, page = 1, limit = 10 } = req.query;
+    const query = {};
+
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    if (!["superAdmin", "companyAdmin"].includes(userRole)) {
+      return res.status(403).json({ msg: "Only superAdmin or companyAdmin can view issues" });
+    }
+
+    // If companyAdmin, restrict to their own issues
+    if (userRole === "companyAdmin") {
+      query.createdBy = userId;
+    }
+
+    if (status) query.status = status;
+    if (reporterType) query.reporterType = reporterType;
+    if (search) {
+      query.$or = [
+        { reporter: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const issues = await Issue.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .populate('createdBy', 'name email role');  // helpful info
+
+    const total = await Issue.countDocuments(query);
+
+    res.json({
+      issues,
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ msg: "Error fetching issues", error: err.message });
+  }
+};
+
+
 // Get single issue
 export const getIssueById = async (req, res) => {
   try {
@@ -110,5 +158,69 @@ export const deleteIssue = async (req, res) => {
     res.json({ msg: "Issue deleted successfully" });
   } catch (err) {
     res.status(500).json({ msg: "Error deleting issue", error: err.message });
+  }
+};
+
+export const createFeedback = async (req, res) => {
+  try {
+    const { title, description } = req.body;
+
+    if (!["superAdmin", "companyAdmin"].includes(req.user.role)) {
+      return res.status(403).json({ msg: "Only superAdmin or companyAdmin can create feedback" });
+    }
+
+    const feedback = new Issue({
+      title,
+      description,
+      createdBy: req.user.id,
+    });
+
+    await feedback.save();
+
+    res.status(201).json({ msg: "Feedback created successfully", issue: feedback });
+  } catch (error) {
+    res.status(500).json({ msg: "Server Error", error: error.message });
+  }
+};
+
+
+// export const getAllFeedback = async (req, res) => {
+//   try {
+//     if (!["superAdmin", "companyAdmin"].includes(req.user.role)) {
+//       return res.status(403).json({ msg: "Only superAdmin or companyAdmin can view feedback" });
+//     }
+
+//     const feedback = await Issue.find().populate('createdBy', 'name email role');
+
+//     res.json({ issues: feedback });
+//   } catch (error) {
+//     res.status(500).json({ msg: "Server Error", error: error.message });
+//   }
+// };
+
+
+export const resolveFeedback = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { solution } = req.body;
+
+    if (!solution || solution.trim() === "") {
+      return res.status(400).json({ msg: "Solution is required to resolve the issue." });
+    }
+
+    const issue = await Issue.findById(id);
+    if (!issue) return res.status(404).json({ msg: "Issue not found." });
+
+    if (req.user.role !== 'superAdmin') {
+      return res.status(403).json({ msg: "Only superAdmin can resolve issues." });
+    }
+
+    issue.status = 'Resolved'; // <-- use the valid enum value
+    issue.solution = solution;
+    await issue.save();
+
+    res.json({ msg: "Issue resolved successfully.", issue });
+  } catch (error) {
+    res.status(500).json({ msg: "Server Error", error: error.message });
   }
 };

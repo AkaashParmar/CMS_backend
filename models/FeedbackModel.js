@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const feedbackSchema = new mongoose.Schema(
   {
-    reporter: { type: String, required: true }, 
+    reporter: { type: String },
     title: { type: String, required: true },
     description: { type: String, required: true },
     status: {
@@ -13,12 +13,15 @@ const feedbackSchema = new mongoose.Schema(
     solution: { type: String, default: "" },
     reportedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", 
-      required: true,
+      ref: "User",
     },
     reporterType: {
       type: String,
       enum: ["patient", "Employee"],
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
   },
