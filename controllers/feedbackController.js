@@ -4,12 +4,10 @@ import User from "../models/User.js";
 // Create new issue (Patient or Employee)
 export const createIssue = async (req, res) => {
   try {
-    const { title, description, reporterType } = req.body;
+    const { title, description } = req.body;
 
     if (!title || !description) {
-      return res
-        .status(400)
-        .json({ msg: "Title and description are required" });
+      return res.status(400).json({ msg: "Title and description are required" });
     }
 
     const user = await User.findById(req.user.id);
@@ -19,23 +17,72 @@ export const createIssue = async (req, res) => {
 
     const reporterName = `${user.role} - ${user.name}`;
 
+    let createdBy = req.user.id;
+
+    if (["doctor", "patient", "accountant", "labTechnician"].includes(user.role)) {
+      createdBy = user.createdBy;
+    }
+
     const newIssue = new Issue({
       reporter: reporterName,
       title,
       description,
       reportedBy: user._id,
       reporterType: user.role === "patient" ? "patient" : "Employee",
+      createdBy,  // This controls who sees the issue later
     });
 
     await newIssue.save();
 
-    res
-      .status(201)
-      .json({ msg: "Issue reported successfully", issue: newIssue });
+    res.status(201).json({ msg: "Issue reported successfully", issue: newIssue });
   } catch (err) {
     res.status(500).json({ msg: "Error creating issue", error: err.message });
   }
 };
+
+export const getIssuesForCompanyAdmin = async (req, res) => {
+  try {
+    const issues = await Issue.find({ createdBy: req.user.id })
+      .populate("reportedBy", "name role profile.phoneNumber");
+
+    res.status(200).json({
+      msg: "Issues fetched successfully",
+      issues,
+    });
+  } catch (err) {
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+
+export const getOwnIssues = async (req, res) => {
+  try {
+    let issues;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    if (user.role === "companyAdmin") {
+      // CompanyAdmin should see all issues where createdBy === their ID
+      issues = await Issue.find({ createdBy: req.user.id });
+    } else {
+      // Other roles (doctor, patient, labTechnician, accountant) should see only their own reported issues
+      issues = await Issue.find({ reportedBy: req.user.id });
+    }
+
+    res.status(200).json({
+      msg: "Your reported issues fetched successfully",
+      issues,
+    });
+  } catch (err) {
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+
 
 // Get all issues
 export const getIssues = async (req, res) => {

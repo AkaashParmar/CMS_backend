@@ -9,6 +9,7 @@ import {
   getRecentBills,
   getBillingStats,
   getDoctorCommissionData,
+  revenuePerMonth,
 } from "../controllers/billingController.js";
 import authenticate from "../middleware/authmiddleware.js";
 
@@ -29,6 +30,7 @@ router.get("/:billId", authenticate, getBillById);
 router.put("/:billId/status", authenticate, updateBillStatus);
 router.delete("/:billId", authenticate, deleteBill);
 
+router.get("/revenue", authenticate, revenuePerMonth)
 
 
 export default router;
