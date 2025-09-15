@@ -8,6 +8,7 @@ const drugSchema = new mongoose.Schema(
     quantity: { type: Number, required: true, default: 0 },
     price: { type: Number, required: true }, // per unit
     expiry: { type: Date, required: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );

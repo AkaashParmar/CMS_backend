@@ -13,7 +13,7 @@ const itemSchema = new mongoose.Schema(
 
 const billingSchema = new mongoose.Schema(
   {
-    billId: { type: String, required: true, unique: true },
+    billId: { type: String, required: true },
     patientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -28,6 +28,7 @@ const billingSchema = new mongoose.Schema(
     },
     treatment: { type: String, required: true },
     amount: { type: Number, required: true },
+    method: { type: String },
     date: { type: Date, default: Date.now },
     status: { type: String, enum: ["Paid", "Unpaid"], default: "Unpaid" },
     items: [itemSchema],

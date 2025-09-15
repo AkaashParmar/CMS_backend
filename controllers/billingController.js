@@ -2,7 +2,7 @@ import Billing from "../models/Billing.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
 
-// generate billId
+// Reuse your generateBillId function
 const generateBillId = async () => {
   const lastBill = await Billing.findOne().sort({ createdAt: -1 });
   if (!lastBill) return "BILL-0001";
@@ -12,20 +12,17 @@ const generateBillId = async () => {
   return `BILL-${newId.toString().padStart(4, "0")}`;
 };
 
-// Create Account billing (Accountant)
 export const createBilling = async (req, res) => {
   try {
-    const { patientId, service, doctor, treatment, items } = req.body;
+    const { patientId, service, doctor, treatment, items, method } = req.body;
 
     const newBillId = await generateBillId();
 
-    // Process items
     const processedItems = (items || []).map((item) => ({
       ...item,
       createdAt: new Date(),
     }));
 
-    // Calculate total dueBalance (sum of item prices)
     const totalDueBalance = processedItems.reduce(
       (sum, item) => sum + item.price,
       0
@@ -37,6 +34,7 @@ export const createBilling = async (req, res) => {
       service,
       doctor,
       treatment,
+      method,
       amount: totalDueBalance,
       items: processedItems,
       dueBalance: totalDueBalance,
@@ -374,6 +372,35 @@ export const revenuePerMonth = async (req, res) => {
   } catch (err) {
     console.error("❌ Error in revenuePerMonth:", err);
     res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+
+export const getAllBills = async (req, res) => {
+  try {
+    const bill = await Billing.findOne({ billId: req.params.billId }).populate("patientId", "name");
+    if (!bill) return res.status(404).json({ msg: "Bill not found" });
+
+
+    const formattedBills = bills.map((bill) => ({
+      billId: bill.billId,
+      patientName: bill.patientId?.name || "Unknown",
+      paymentMode: bill.service,
+      amount: bill.amount,
+      date: bill.date.toISOString().split("T")[0],
+      status: bill.status,
+    }));
+
+    res.status(200).json({
+      msg: "Bills fetched successfully",
+      bills: formattedBills,
+    });
+  } catch (err) {
+    console.error("Error fetching bills:", err);
+    res.status(500).json({
+      msg: "Error fetching bills",
+      error: err.message,
+    });
   }
 };
 
