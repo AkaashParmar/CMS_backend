@@ -60,4 +60,33 @@ export const getPrescriptionById = async (req, res) => {
   }
 };
 
+export const getRecentPrescriptions = async (req, res) => {
+  try {
+    const patientId = req.params.patientId;
+    const limit = parseInt(req.query.limit) || 5; // Limit number of results (default: 5)
+
+    const prescriptions = await Prescription.find({ patient: patientId })
+      .sort({ createdAt: -1 }) // Most recent first
+      .limit(limit);
+
+    const formatted = prescriptions.map((p) => ({
+      _id: p._id,
+      prescriptionId: p.prescriptionId,
+      date: p.date.toISOString().split("T")[0],
+      doctorName: p.doctorName,
+      complaints: p.complaints,
+      diagnosis: p.diagnosis,
+      prescription: p.prescription,
+      followUp: p.followUp ? p.followUp.toISOString().split("T")[0] : null,
+    }));
+
+    res.status(200).json({
+      msg: "Recent prescriptions fetched successfully",
+      prescriptions: formatted,
+    });
+  } catch (err) {
+    console.error("Error fetching recent prescriptions:", err);
+    res.status(500).json({ msg: "Error fetching prescriptions", error: err.message });
+  }
+};
 

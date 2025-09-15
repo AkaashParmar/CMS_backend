@@ -83,22 +83,20 @@ import mongoose from "mongoose";
 // Upload or Update report
 export const uploadReport = async (req, res) => {
   try {
-    const { doctorName, comments, status, reportId } = req.body;
+    const { doctor, comments, status, reportId } = req.body;
     const file = req.file;
+
+    if (!doctor) return res.status(400).json({ msg: "Doctor is required" });
 
     let fileUrl = null;
     let fileName = null;
 
     if (file) {
-      // Upload file to Cloudinary
       const resultCloud = await cloudinary.uploader.upload(file.path, {
         folder: "reports",
         resource_type: "auto",
       });
-
-      // Delete local file after upload (cleanup)
-      fs.unlinkSync(file.path);
-
+      fs.unlinkSync(file.path); // cleanup local file
       fileUrl = resultCloud.secure_url;
       fileName = file.originalname;
     }
@@ -106,7 +104,7 @@ export const uploadReport = async (req, res) => {
     let report;
 
     if (reportId) {
-      // 👉 Update existing report
+      // Update existing report
       report = await PatientReport.findById(reportId);
       if (!report) return res.status(404).json({ msg: "Report not found" });
 
@@ -114,22 +112,20 @@ export const uploadReport = async (req, res) => {
         report.fileUrl = fileUrl;
         report.name = fileName;
       }
-      // if (doctor) report.doctor = doctor;
-      if (doctorName) report.doctorName = doctorName; // manual doctor name
+      if (doctor) report.doctor = doctor;
       if (comments) report.comments = comments;
       if (status) report.status = status;
 
       await report.save();
     } else {
-      // 👉 Create new report
+      // Create new report
       if (!file) return res.status(400).json({ msg: "File is required" });
 
       report = new PatientReport({
         name: file.originalname,
         fileUrl,
         date: new Date().toISOString().split("T")[0],
-        // doctor,
-        doctorName, // <-- store doctor name manually
+        doctor, // store selected doctor ObjectId
         comments,
         status: status || "Pending Review",
         uploadedBy: req.user?.id || null,
@@ -139,9 +135,7 @@ export const uploadReport = async (req, res) => {
     }
 
     res.status(201).json({
-      msg: reportId
-        ? "Report updated successfully"
-        : "Report uploaded successfully",
+      msg: reportId ? "Report updated successfully" : "Report uploaded successfully",
       report,
     });
   } catch (err) {
@@ -158,9 +152,13 @@ export const getReports = async (req, res) => {
     const { doctor, date, search, page = 1, limit = 5 } = req.query;
     const query = {};
 
+    // Filter by doctor ObjectId
     if (doctor) query.doctor = doctor;
+
+    // Filter by date (exact match)
     if (date) query.date = date;
 
+    // Search in report name or comments
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -168,8 +166,9 @@ export const getReports = async (req, res) => {
       ];
     }
 
+    // Fetch reports with pagination
     const reports = await PatientReport.find(query)
-      .populate("doctor", "name email role") // populate doctor info
+      .populate("doctor", "name registrationNo") // populate doctor info
       .populate("uploadedBy", "name email role") // populate uploader info
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -177,14 +176,14 @@ export const getReports = async (req, res) => {
 
     const total = await PatientReport.countDocuments(query);
 
-    // Customize response
+    // Format response
     const formatted = reports.map((r) => ({
       _id: r._id,
       name: r.name,
       fileUrl: r.fileUrl,
       date: r.date,
-      doctor: r.doctor, // populated doctor (name, email, role)
-      doctorName: r.doctorName, // manual doctorName
+      doctor: r.doctor, // populated doctor (_id, name, registrationNo)
+      doctorName: r.doctorName || r.doctor?.name || "Unknown Doctor", // fallback to populated name
       comments: r.comments,
       status: r.status,
       uploadedBy: r.uploadedBy,
@@ -200,9 +199,11 @@ export const getReports = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error("Error fetching reports:", err);
     res.status(500).json({ msg: "Error fetching reports", error: err.message });
   }
 };
+
 
 // Get single report by ID
 export const getReportById = async (req, res) => {
@@ -293,5 +294,38 @@ export const getReportsPerWeek = async (req, res) => {
   } catch (error) {
     console.error("Error fetching reports per week:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// Get reports uploaded by the current user (patient)
+export const getMyReports = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ msg: "Unauthorized" });
+    }
+
+    const reports = await PatientReport.find({ uploadedBy: userId })
+      .populate("doctor", "name registrationNo") // Get doctor details
+      .sort({ createdAt: -1 });
+
+    const formatted = reports.map((r) => ({
+      _id: r._id,
+      name: r.name,                 // Original file name
+      fileUrl: r.fileUrl,           // Cloudinary URL
+      date: r.date,                 // Upload date (YYYY-MM-DD)
+      doctorName: r.doctor?.name || "Unknown Doctor",
+      doctorRegistrationNo: r.doctor?.registrationNo || "N/A",
+      status: r.status,             // "Pending Review" or "Reviewed"
+      reportType: r.name.split('.').pop().toUpperCase(), // Extract file extension as type (PDF, JPG, PNG)
+      uploadedAt: r.createdAt,
+    }));
+
+    res.json({ reports: formatted });
+  } catch (err) {
+    console.error("Error fetching user's reports:", err);
+    res.status(500).json({ msg: "Error fetching your reports", error: err.message });
   }
 };

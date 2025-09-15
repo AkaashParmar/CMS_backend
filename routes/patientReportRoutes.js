@@ -6,6 +6,7 @@ import {
   updateReport,
   deleteReport,
   getReportsPerWeek,
+  getMyReports,
 } from "../controllers/patientReportController.js";
 import authenticate from "../middleware/authmiddleware.js";
 import authorizeRoles from "../middleware/authorizeRolemiddleware.js";
@@ -19,5 +20,6 @@ router.get("/:id", authenticate, getReportById);
 router.put("/:id", authenticate, updateReport);
 router.delete("/:id", authenticate, deleteReport);
 router.get("/stats/weekly", authenticate, getReportsPerWeek);
+router.get("/getreports", authenticate, getMyReports);
 
 export default router;
