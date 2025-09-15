@@ -6,11 +6,14 @@ const patientReportSchema = new mongoose.Schema(
     fileUrl: { type: String },
     date: { type: String, required: true },
 
-    // Reference to the Doctor selected from dropdown
     doctor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Make sure the User model has role 'doctor'
-      required: true,
+      ref: "User",
+    },
+
+    patientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
 
     comments: { type: String, default: "" },

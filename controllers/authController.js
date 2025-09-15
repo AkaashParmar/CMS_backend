@@ -217,6 +217,54 @@ const getCompanyAdmins = async (req, res) => {
   }
 };
 
+
+const getEmployeeCountsByCompanyAdmin = async (req, res) => {
+  try {
+    const { companyAdminId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(companyAdminId)) {
+      return res.status(400).json({ success: false, message: "Invalid companyAdminId" });
+    }
+
+    // Fetch companyAdmin's name
+    const companyAdmin = await User.findById(companyAdminId).select("name");
+
+    if (!companyAdmin) {
+      return res.status(404).json({ success: false, message: "Company Admin not found" });
+    }
+
+    // Aggregate employee counts grouped by role
+    const counts = await User.aggregate([
+      { $match: { createdBy: new mongoose.Types.ObjectId(companyAdminId) } },
+      {
+        $group: {
+          _id: "$role",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const result = {};
+    counts.forEach(item => {
+      result[item._id] = item.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        companyAdmin: {
+          id: companyAdminId,
+          name: companyAdmin.name
+        },
+        employeeCounts: result
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching employee counts:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 // Get single companyAdmin by ID
 const getCompanyAdminById = async (req, res) => {
   try {
@@ -380,6 +428,35 @@ const createUserByCompanyAdmin = async (req, res) => {
 // get all users created by the logged-in companyAdmin
 const getUsersByCompanyAdmin = async (req, res) => {
   try {
+    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
+
+    const users = await User.find({
+      role: { $in: allowedRoles },
+      createdBy: req.user.id,
+    })
+      .select("-password")
+      .lean();
+
+    if (!users || users.length === 0) {
+      return res
+        .status(404)
+        .json({ msg: "No users found for this companyAdmin" });
+    }
+
+    res.status(200).json({
+      msg: "Users fetched successfully",
+      count: users.length,
+      users,
+    });
+  } catch (err) {
+    console.error("Get users error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+// get all users created by the logged-in companyAdmin
+const getPatientsInDoctor = async (req, res) => {
+  try {
     let patients;
 
     if (req.user.role === "doctor") {
@@ -410,7 +487,6 @@ const getUsersByCompanyAdmin = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
-
 
 const deleteUserByCompanyAdmin = async (req, res) => {
   try {
@@ -666,11 +742,13 @@ export {
   createCompanyAdmin,
   updateCompanyAdmin,
   getCompanyAdmins,
+  getEmployeeCountsByCompanyAdmin,
   getCompanyAdminById,
   forgotPassword,
   resetPasswordWithOTP,
   createUserByCompanyAdmin,
   getUsersByCompanyAdmin,
+  getPatientsInDoctor,
   deleteUserByCompanyAdmin,
   getUserProfileById,
   updateProfile,
