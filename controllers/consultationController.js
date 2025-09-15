@@ -1,6 +1,7 @@
 import Consultation from "../models/Consultation.js";
 import User from "../models/User.js";
-import Billing from "../models/Billing.js"; 
+import Billing from "../models/Billing.js";
+import mongoose from "mongoose";
 
 
 export const createConsultation = async (req, res) => {
@@ -70,7 +71,7 @@ export const createConsultation = async (req, res) => {
 export const getConsultations = async (req, res) => {
   try {
     const consultations = await Consultation.find()
-      .populate("patient", "name patientId") 
+      .populate("patient", "name patientId")
       .populate("createdBy", "name role")
       .sort({ createdAt: -1 });
 
@@ -102,8 +103,8 @@ export const getConsultationBilling = async (req, res) => {
       patient: bill.patientId?.name || "N/A",
       doctor: bill.doctor?.name || "N/A",
       department: bill.service,
-      date: bill.date.toISOString().split("T")[0], 
-      method: "N/A", 
+      date: bill.date.toISOString().split("T")[0],
+      method: "N/A",
       amount: bill.amount,
       status: bill.status,
     }));
@@ -172,4 +173,79 @@ export const getPaymentSummary = async (req, res) => {
   }
 };
 
+export const getPatientVisitsByDepartment = async (req, res) => {
+  try {
+    const visits = await Consultation.aggregate([
+      // Lookup the doctor profile
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "doctor",
+        },
+      },
+      { $unwind: "$doctor" },
+
+      // Group by department
+      {
+        $group: {
+          _id: "$doctor.profile.department",
+          visitCount: { $sum: 1 },
+        },
+      },
+
+      // Project output format
+      {
+        $project: {
+          _id: 0,
+          department: "$_id",
+          visitCount: 1,
+        },
+      },
+
+      // Optional: Sort by visitCount descending
+      { $sort: { visitCount: -1 } },
+    ]);
+
+    res.status(200).json({
+      msg: "Patient visits by department fetched successfully",
+      data: visits,
+    });
+  } catch (err) {
+    console.error("Error fetching visits by department:", err);
+    res.status(500).json({
+      msg: "Error fetching visits by department",
+      error: err.message,
+    });
+  }
+};
+
+
+export const getConsultationsByDate = async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().split('T')[0];
+
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const consultations = await Consultation.find({
+      consultationDate: { $gte: start, $lte: end }
+    })
+      .populate("patient", "name patientId")
+      .populate("createdBy", "name")
+      .sort({ consultationTime: 1 });
+
+    res.json({
+      msg: "Consultations fetched successfully",
+      data: consultations,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error fetching consultations" });
+  }
+};
 

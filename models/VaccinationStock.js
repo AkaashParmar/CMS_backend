@@ -9,6 +9,8 @@ const vaccinationStockSchema = new mongoose.Schema(
     consumed: { type: Number, required: true, default: 0 },
     business: { type: String },
     profit: { type: String },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
   },
   { timestamps: true }
 );
