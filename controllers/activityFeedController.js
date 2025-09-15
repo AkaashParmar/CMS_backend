@@ -111,12 +111,22 @@ export const getMonthlyBillingTrend = async (req, res) => {
 
 export const getSummaryStats = async (req, res) => {
   try {
-    const [doctorCount, patientCount, appointmentCount, prescriptionCount, labTestCount] = await Promise.all([
+    const [
+      doctorCount,
+      patientCount,
+      appointmentCount,
+      prescriptionCount,
+      labTestCount,
+      clinicCount,
+      drugCount,
+    ] = await Promise.all([
       User.countDocuments({ role: "doctor" }),
       User.countDocuments({ role: "patient" }),
       Appointment.countDocuments(),
       Prescription.countDocuments(),
       LabTest.countDocuments(),
+      Clinic.countDocuments(),
+      Drug.countDocuments(),
     ]);
 
     res.status(200).json({
@@ -125,12 +135,15 @@ export const getSummaryStats = async (req, res) => {
       appointments: appointmentCount,
       prescriptions: prescriptionCount,
       labTests: labTestCount,
+      clinics: clinicCount,
+      drugs: drugCount,
     });
   } catch (error) {
     console.error("Error fetching summary stats:", error);
     res.status(500).json({ msg: "Server error" });
   }
 };
+
 
 
 export const getDashboardActivity = async (req, res) => {

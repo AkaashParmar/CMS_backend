@@ -8,6 +8,8 @@ import {
   getCompanyAdminById,
   createUserByCompanyAdmin,
   getUsersByCompanyAdmin,
+  getEmployeeCountsByCompanyAdmin,
+  getPatientsInDoctor,
   deleteUserByCompanyAdmin,
   getUserProfileById,
   forgotPassword,
@@ -64,8 +66,12 @@ router.post(
   createUserByCompanyAdmin
 );
 
+router.get("/getEmployee/:companyAdminId", authenticate, getEmployeeCountsByCompanyAdmin);
+
 router.get("/getProfile", authenticate, getUsersByCompanyAdmin);
 router.get("/getProfile/:id", authenticate, getUserProfileById);
+
+router.get("/getPatients", authenticate, getPatientsInDoctor);
 
 router.delete(
   "/delete-user/:id",

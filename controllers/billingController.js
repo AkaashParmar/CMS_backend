@@ -94,12 +94,14 @@ export const updateBillStatus = async (req, res) => {
       { status },
       { new: true }
     );
+
     if (!bill) return res.status(404).json({ message: "Bill not found" });
     res.json(bill);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
+
 
 // Delete bill
 export const deleteBill = async (req, res) => {

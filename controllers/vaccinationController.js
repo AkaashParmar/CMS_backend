@@ -55,6 +55,38 @@ export const createDose = async (req, res) => {
   }
 };
 
+//vaccination stats (companyAdmin Reports)
+export const getMonthlyVaccinationStats = async (req, res) => {
+  try {
+    const result = await VaccinationDose.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: "$date" },
+            month: { $month: "$date" }
+          },
+          doseCount: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 }
+      },
+      {
+        $project: {
+          _id: 0,
+          year: "$_id.year",
+          month: "$_id.month",
+          doseCount: 1
+        }
+      }
+    ]);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching dose count by month:", error);
+    res.status(500).json({ message: "Server Error", error });
+  }
+};
 
 // Get Patient Vaccination Summary
 export const getPatientVaccinationSummary = async (req, res) => {
@@ -140,51 +172,8 @@ export const getDoseById = async (req, res) => {
 };
 
 
-//vaccination stats (companyAdmin Reports)
-export const getMonthlyVaccinationStats = async (req, res) => {
-  try {
-    const userId = req.user?.id;
 
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ success: false, message: "Invalid user ID" });
-    }
 
-    const stats = await VaccinationDose.aggregate([
-      {
-        $match: {
-          status: "Completed",
-          administeredBy: new mongoose.Types.ObjectId(userId), // ✅ use 'new'
-        },
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$date" },
-            month: { $month: "$date" },
-          },
-          totalDoses: { $sum: 1 },
-        },
-      },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
-    ]);
-
-    const monthNames = [
-      "", "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-
-    const formattedStats = stats.map(stat => ({
-      year: stat._id.year,
-      month: monthNames[stat._id.month],
-      totalDoses: stat.totalDoses,
-    }));
-
-    res.status(200).json({ success: true, data: formattedStats });
-  } catch (error) {
-    console.error("Monthly vaccination stats error:", error);
-    res.status(500).json({ success: false, message: "Server Error" });
-  }
-};
 
 export const getPatientsDoctorsClinics = async (req, res) => {
   try {
