@@ -380,31 +380,37 @@ const createUserByCompanyAdmin = async (req, res) => {
 // get all users created by the logged-in companyAdmin
 const getUsersByCompanyAdmin = async (req, res) => {
   try {
-    const allowedRoles = ["doctor", "labTechnician", "patient", "accountant"];
+    let patients;
 
-    const users = await User.find({
-      role: { $in: allowedRoles },
-      createdBy: req.user.id,
-    })
-      .select("-password")
-      .lean();
+    if (req.user.role === "doctor") {
+      // Doctors can see all patients
+      patients = await User.find({ role: "patient" })
+        .select("-password")
+        .lean();
+    } else if (req.user.role === "companyAdmin") {
+      // CompanyAdmins see patients they created
+      patients = await User.find({ role: "patient", createdBy: req.user.id })
+        .select("-password")
+        .lean();
+    } else {
+      return res.status(403).json({ msg: "Access denied" });
+    }
 
-    if (!users || users.length === 0) {
-      return res
-        .status(404)
-        .json({ msg: "No users found for this companyAdmin" });
+    if (!patients || patients.length === 0) {
+      return res.status(404).json({ msg: "No patients found" });
     }
 
     res.status(200).json({
-      msg: "Users fetched successfully",
-      count: users.length,
-      users,
+      msg: "Patients fetched successfully",
+      count: patients.length,
+      patients,
     });
   } catch (err) {
-    console.error("Get users error:", err);
+    console.error("Get patients error:", err);
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
+
 
 const deleteUserByCompanyAdmin = async (req, res) => {
   try {

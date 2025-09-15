@@ -11,6 +11,7 @@ import {
   deleteStock,
   getPatientVaccinationSummary,
   getPatientsDoctorsClinics,
+  getStockStatus,
 } from "../controllers/vaccinationController.js";
 import authenticate from "../middleware/authmiddleware.js";
 
@@ -32,5 +33,6 @@ router.get("/stocks/:id", authenticate, getStockById);
 router.put("/stocks/:id", authenticate, updateStock); // full update
 router.patch("/:id", authenticate, updateStock); // partial update
 router.delete("/:id", authenticate, deleteStock);
+router.get("/stockStatus", authenticate, getStockStatus);
 
 export default router;

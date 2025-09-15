@@ -108,15 +108,15 @@ export const getPatientVaccinationSummary = async (req, res) => {
 export const getDoses = async (req, res) => {
   try {
     const doses = await VaccinationDose.find()
-      .populate("patient", "name patientId")                   // fetch patient name
-      .populate("administeredBy", "name registrationNo")       // fetch doctor name
-      .populate("clinic", "clinicName");                       // fetch clinic name
+      .populate("patient", "name patientId")
+      .populate("administeredBy", "name registrationNo")
+      .populate("clinic", "clinicName");
 
     const formatted = doses.map(d => ({
       ...d.toObject(),
       date: d.date.toISOString().split("T")[0],
       patientName: d.patient?.name || "-",
-      doctorName: d.administeredBy?.name || "-",              // <-- map doctor name here
+      doctorName: d.administeredBy?.name || "-",
       clinicName: d.clinic?.clinicName || "-",
     }));
 
@@ -264,6 +264,40 @@ export const deleteStock = async (req, res) => {
     const deleted = await VaccinationStock.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Stock not found" });
     res.json({ message: "Stock deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+export const getStockStatus = async (req, res) => {
+  try {
+    const stocks = await VaccinationStock.find();
+
+    const today = new Date();
+    let totalAvailable = 0;
+    let totalConsumed = 0;
+    let expiredCount = 0;
+    let lowStockCount = 0;
+
+    stocks.forEach((stock) => {
+      totalAvailable += stock.available;
+      totalConsumed += stock.consumed;
+
+      // Count expired stock
+      if (stock.expiryDate < today) expiredCount += 1;
+
+      // Count low stock (threshold 10, you can adjust)
+      if (stock.available <= 10) lowStockCount += 1;
+    });
+
+    res.json({
+      totalAvailable,
+      totalConsumed,
+      expiredCount,
+      lowStockCount,
+      totalBatches: stocks.length,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

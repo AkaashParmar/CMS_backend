@@ -120,3 +120,18 @@ export const getStockOutCounts = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getStockStatus = async (req, res) => {
+  try {
+    // Fetch all stock out records
+    const stockOuts = await StockOut.find({}, "stockItem quantity -_id"); // only stockItem & quantity
+
+    res.status(200).json({
+      msg: "Stock status fetched successfully",
+      data: stockOuts,
+    });
+  } catch (err) {
+    console.error("Error fetching stock status:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
