@@ -32,7 +32,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: ["http://localhost:3000", "http://localhost:5173", "https://clinic-management-system-delta-bay.vercel.app"],
     credentials: true,
   })
 );
