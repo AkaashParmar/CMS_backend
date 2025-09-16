@@ -32,7 +32,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173", "https://clinicmanagement-theta.vercel.app/"],
+    origin: ["http://localhost:3000", "http://localhost:5173", "https://clinicmanagement-theta.vercel.app"],
     credentials: true,
   })
 );
