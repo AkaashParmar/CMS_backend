@@ -32,8 +32,10 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173", "https://clinicmanagement-theta.vercel.app","https://clinic-management-system-weld.vercel.app" ],
-    credentials: true,
+    origin: "*", // Allow only your frontend URL
+    credentials: true, // Allow cookies and authentication headers
+    methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allow these headers
   })
 );
 app.use(express.json());
