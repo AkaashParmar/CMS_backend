@@ -265,6 +265,24 @@ const getEmployeeCountsByCompanyAdmin = async (req, res) => {
   }
 };
 
+const getCompanyName = async (req, res) => {
+  try {
+    // Ensure the requester is superAdmin
+    if (req.user.role !== "superAdmin") {
+      return res.status(403).json({ message: "Access denied ❌" });
+    }
+
+    const companyAdmins = await User.find({ role: "companyAdmin" }).select(
+      "name email profile.companyName"
+    );
+
+    res.status(200).json(companyAdmins);
+  } catch (error) {
+    console.error("Error fetching company admins:", error);
+    res.status(500).json({ message: "Server error ❌" });
+  }
+};
+
 // Get single companyAdmin by ID
 const getCompanyAdminById = async (req, res) => {
   try {
@@ -743,6 +761,7 @@ export {
   updateCompanyAdmin,
   getCompanyAdmins,
   getEmployeeCountsByCompanyAdmin,
+  getCompanyName,
   getCompanyAdminById,
   forgotPassword,
   resetPasswordWithOTP,

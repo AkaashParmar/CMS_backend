@@ -17,8 +17,6 @@ const prescriptionSchema = new mongoose.Schema(
     gender: { type: String, required: true },
     age: { type: Number, required: true },
     date: { type: Date, required: true },
-    // medicine: { type: String, required: true },
-    // nextVisit: { type: Date, required: true },
     vitals: String,
     complaints: String,
     diagnosis: String,
@@ -48,6 +46,14 @@ const prescriptionSchema = new mongoose.Schema(
     doctorName: String,
     doctorId: String,
     signature: String,
+
+    template: {
+      fontFamily: String,
+      fontSize: Number,
+      pageSize: String,
+      prescriptionFormat: String,
+      language: String,
+    },
   },
   { timestamps: true }
 );
