@@ -32,7 +32,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*", // Allow only your frontend URL
+    origin: "*", // Allow only frontend URL
     credentials: true, // Allow cookies and authentication headers
     methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
     allowedHeaders: ["Content-Type", "Authorization"], // Allow these headers
