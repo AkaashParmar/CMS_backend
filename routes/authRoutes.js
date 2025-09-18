@@ -9,6 +9,7 @@ import {
   createUserByCompanyAdmin,
   getUsersByCompanyAdmin,
   getEmployeeCountsByCompanyAdmin,
+  getCompanyName,
   getPatientsInDoctor,
   deleteUserByCompanyAdmin,
   getUserProfileById,
@@ -67,6 +68,12 @@ router.post(
 );
 
 router.get("/getEmployee/:companyAdminId", authenticate, getEmployeeCountsByCompanyAdmin);
+router.get(
+  "/company-admins",
+  authenticate,
+  getCompanyName
+);
+
 
 router.get("/getProfile", authenticate, getUsersByCompanyAdmin);
 router.get("/getProfile/:id", authenticate, getUserProfileById);

@@ -1,9 +1,15 @@
 import Prescription from "../models/PrescriptionTemplate.js";
 import User from '../models/User.js';
+import mongoose from "mongoose";
+import { PrescriptionTemplate } from '../models/Prescription.js'
 
 export const createPrescription = async (req, res) => {
   try {
-    const prescription = new Prescription(req.body);
+    // req.body me template aayega
+    const prescription = new Prescription({
+      ...req.body,
+      template: req.body.template, 
+    });
 
     if (!prescription.prescriptionId) {
       prescription.prescriptionId = "PR-" + Date.now();
@@ -15,6 +21,7 @@ export const createPrescription = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
 
 export const getPrescriptions = async (req, res) => {
   try {
@@ -90,3 +97,67 @@ export const getRecentPrescriptions = async (req, res) => {
   }
 };
 
+
+// Template Settings (superAdmin)
+// Save Prescription Template Settings
+
+export const createPrescriptionTemplate = async (req, res) => {
+  try {
+    const {
+      clinic,
+      template,
+      fontSize,
+      pageSize,
+      prescriptionFormat,
+      fontFamily,
+      language,
+    } = req.body;
+
+    console.log("Incoming body:", req.body);
+
+    if (!clinic) {
+      return res.status(400).json({ message: "Clinic is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(clinic)) {
+      return res.status(400).json({ message: "Invalid Clinic ID" });
+    }
+
+    const newTemplate = new PrescriptionTemplate({
+      clinic: [clinic],
+      template,
+      fontSize,
+      pageSize,
+      prescriptionFormat,
+      fontFamily,
+      language,
+      createdBy: req.user.id,
+    });
+
+    await newTemplate.save();
+
+    res.status(201).json({ message: "Template saved successfully ✅" });
+  } catch (error) {
+    console.error("Error saving template:", error);  // Logs the full error
+    res.status(500).json({ message: "Failed to save template ❌", error: error.message });
+  }
+};
+
+// Get Prescription Templates
+export const getPrescriptionTemplates = async (req, res) => {
+  try {
+    // Optional: filter by createdBy so each user only sees their templates
+    const templates = await PrescriptionTemplate.find()
+      .populate("clinic", "clinicName")
+      .sort({ createdAt: -1 });
+
+
+    res.status(200).json({
+      message: "Templates fetched successfully ✅",
+      templates,
+    });
+  } catch (error) {
+    console.error("Error fetching templates:", error);
+    res.status(500).json({ message: "Failed to fetch templates ❌", error: error.message });
+  }
+};
