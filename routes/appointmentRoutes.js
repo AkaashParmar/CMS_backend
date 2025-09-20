@@ -3,6 +3,7 @@ import {
   createAppointment,
   getPatientsAndDoctors,
   getAppointments,
+  getAppointmentsByDoctor,
   getAppointmentById,
   updateAppointment,
   deleteAppointment,
@@ -17,6 +18,7 @@ const router = express.Router();
 router.post("/create", authenticate, createAppointment);
 router.get("/patients-doctors", authenticate, getPatientsAndDoctors);
 router.get("/getAll", authenticate, getAppointments);
+router.get("/doctor/:doctorId", authenticate, getAppointmentsByDoctor);
 router.get("/count", authenticate, getAppointmentsCount);
 router.get("/status/counts", authenticate, getAppointmentStatusCounts);
 router.get("/:id", authenticate, getAppointmentById);

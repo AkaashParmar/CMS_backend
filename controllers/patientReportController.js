@@ -220,8 +220,8 @@ export const getReportById = async (req, res) => {
       name: report.name,
       fileUrl: report.fileUrl,
       date: report.date,
-      doctor: report.doctor, // populated doctor
-      doctorName: report.doctorName, // manual doctor name
+      doctor: report.doctor, 
+      doctorName: report.doctorName, 
       comments: report.comments,
       status: report.status,
       uploadedBy: report.uploadedBy,
@@ -308,18 +308,18 @@ export const getMyReports = async (req, res) => {
     }
 
     const reports = await PatientReport.find({ uploadedBy: userId })
-      .populate("doctor", "name registrationNo") // Get doctor details
+      .populate("doctor", "name registrationNo") 
       .sort({ createdAt: -1 });
 
     const formatted = reports.map((r) => ({
       _id: r._id,
-      name: r.name,                 // Original file name
-      fileUrl: r.fileUrl,           // Cloudinary URL
-      date: r.date,                 // Upload date (YYYY-MM-DD)
+      name: r.name,                 
+      fileUrl: r.fileUrl,          
+      date: r.date,               
       doctorName: r.doctor?.name || "Unknown Doctor",
       doctorRegistrationNo: r.doctor?.registrationNo || "N/A",
-      status: r.status,             // "Pending Review" or "Reviewed"
-      reportType: r.name.split('.').pop().toUpperCase(), // Extract file extension as type (PDF, JPG, PNG)
+      status: r.status,            
+      reportType: r.name.split('.').pop().toUpperCase(), 
       uploadedAt: r.createdAt,
     }));
 
