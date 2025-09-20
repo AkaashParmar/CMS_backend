@@ -52,6 +52,31 @@ export const getPatientsAndDoctors = async (req, res) => {
   }
 };
 
+export const getAppointmentsByDoctor = async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+
+    if (!doctorId) {
+      return res.status(400).json({ message: "Doctor ID is required" });
+    }
+
+    // doctor ke appointments fetch karo
+    const appointments = await Appointment.find({ doctor: doctorId })
+      .populate("patient", "name email patientId") // patient ka data bhi show hoga
+      .populate("doctor", "name email registrationNo") // doctor ka basic info
+      .sort({ date: 1, time: 1 }); // date aur time ke order me
+
+    if (!appointments.length) {
+      return res.status(404).json({ message: "No appointments found for this doctor" });
+    }
+
+    res.status(200).json(appointments);
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
 
 // Get All Appointments
 export const getAppointments = async (req, res) => {

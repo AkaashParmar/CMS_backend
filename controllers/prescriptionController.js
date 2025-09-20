@@ -1,23 +1,44 @@
 import Prescription from "../models/PrescriptionTemplate.js";
 import User from '../models/User.js';
 import mongoose from "mongoose";
+import cloudinary from "../config/cloudinary-config.js";
+import fs from "fs";
 import { PrescriptionTemplate } from '../models/Prescription.js'
+
 
 export const createPrescription = async (req, res) => {
   try {
-    // req.body me template aayega
-    const prescription = new Prescription({
-      ...req.body,
-      template: req.body.template, 
-    });
+    let prescriptionData = { ...req.body };
 
-    if (!prescription.prescriptionId) {
-      prescription.prescriptionId = "PR-" + Date.now();
+    // Parse JSON fields if sent as string (common with multipart/form-data)
+    if (req.body.referral && typeof req.body.referral === "string") {
+      prescriptionData.referral = JSON.parse(req.body.referral);
     }
+    if (req.body.prescription && typeof req.body.prescription === "string") {
+      prescriptionData.prescription = JSON.parse(req.body.prescription);
+    }
+
+    if (req.file && req.file.path) {
+      const resultCloud = await cloudinary.uploader.upload(req.file.path, {
+        folder: "prescriptions",
+      });
+      prescriptionData.signature = resultCloud.secure_url;
+    }
+
+    // Auto-generate prescriptionId if not provided
+    if (!prescriptionData.prescriptionId) {
+      prescriptionData.prescriptionId = "PR-" + Date.now();
+    }
+
+    const prescription = new Prescription({
+      ...prescriptionData,
+      template: prescriptionData.template,
+    });
 
     const savedPrescription = await prescription.save();
     res.status(201).json(savedPrescription);
   } catch (error) {
+    console.error("Create prescription error:", error);
     res.status(400).json({ message: error.message });
   }
 };
