@@ -64,25 +64,39 @@ export const getPrescriptions = async (req, res) => {
 };
 
 
-export const getPrescriptionById = async (req, res) => {
+export const getPrescriptionsByPatientId = async (req, res) => {
   try {
-    const prescription = await Prescription.findById(req.params.id);
+    const { patientId } = req.params;
 
-    if (!prescription) {
-      return res.status(404).json({ message: "Not found" });
+    // First, find the user with this patientId
+    const user = await User.findOne({ patientId });
+
+    if (!user) {
+      return res.status(404).json({ message: "Patient not found" });
     }
 
-    const patient = await User.findOne({ patientId: prescription.patientId });
+    // Then find prescriptions by user._id
+    const prescriptions = await Prescription.find({ patient: user._id }).populate(
+      "patient",
+      "name patientId"
+    );
 
-    const formattedPrescription = {
-      ...prescription._doc,
-      patient: patient ? { name: patient.name, patientId: patient.patientId } : null,
-      date: prescription.date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-      // nextVisit: prescription.nextVisit.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-      followUp: prescription.followUp?.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-    };
+    if (!prescriptions || prescriptions.length === 0) {
+      return res.status(404).json({ message: "No prescriptions found" });
+    }
 
-    res.json(formattedPrescription);
+    // Format dates before sending
+    const formattedPrescriptions = prescriptions.map((p) => ({
+      ...p._doc,
+      date: p.date
+        ? new Date(p.date).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+        : null,
+      followUp: p.followUp
+        ? new Date(p.followUp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+        : null,
+    }));
+
+    res.status(200).json(formattedPrescriptions);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
