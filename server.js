@@ -22,6 +22,7 @@ import serviceRoutes from "./routes/serviceRoutes.js";
 import medicalServiceRoutes from './routes/medicalServiceRoutes.js';
 import billRoutes from "./routes/billRoutes.js";
 import PendingTaskRoutes from "./routes/pendingTaskRoutes.js";
+import prescriptionsettingRoutes from "./routes/prescriptionsettingRoutes.js";
 
 
 
@@ -60,6 +61,8 @@ app.use("/api/progress", progressRoutes);
 app.use('/api/medical', medicalServiceRoutes);
 app.use("/api/bills", billRoutes);
 app.use("/api/pendingTask", PendingTaskRoutes);
+app.use("/api/prescriptionsettings", prescriptionsettingRoutes);
+
 
 
 const PORT = process.env.PORT || 5000;
