@@ -1,4 +1,7 @@
+import mongoose from 'mongoose';
+
 const PrescriptionSettingSchema = new mongoose.Schema({
+  companyId: { type: String, required: true }, // ✅ this must exist
   companyName: { type: String, required: true },
   template: { type: String, required: true },
   fontSize: { type: Number, default: 12 },
@@ -7,3 +10,7 @@ const PrescriptionSettingSchema = new mongoose.Schema({
   prescriptionFormat: { type: String, default: "PDF" },
   language: { type: String, default: "en" },
 }, { timestamps: true });
+
+// Default export
+const PrescriptionSetting = mongoose.model("PrescriptionSetting", PrescriptionSettingSchema);
+export default PrescriptionSetting;

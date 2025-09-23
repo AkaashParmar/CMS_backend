@@ -1,41 +1,80 @@
 import PrescriptionSetting from "../models/PrescriptionSetting.js";
 
 // Save or Update Settings
+import PrescriptionSetting from "../models/PrescriptionSetting.js";
+
+// Save or Update Settings
 export const savePrescriptionSettings = async (req, res) => {
   try {
-    const { companyName, template, fontSize, fontFamily, pageSize, prescriptionFormat, language } = req.body;
+    const {
+      companyId,
+      companyName,
+      template,
+      fontSize,
+      fontFamily,
+      pageSize,
+      prescriptionFormat,
+      language,
+    } = req.body;
 
-    if (!companyName || !template) {
-      return res.status(400).json({ error: "Company Name and Template are required" });
+    if (!companyId || !companyName || !template) {
+      return res.status(400).json({
+        error: "companyId, companyName and template are required",
+      });
     }
 
+    const condition = { companyId };
+
+    const update = {
+      companyName,
+      template,
+      fontSize,
+      fontFamily,
+      pageSize,
+      prescriptionFormat,
+      language,
+    };
+
+    const options = {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,  // ensure defaults from schema apply when inserting
+    };
+
     const setting = await PrescriptionSetting.findOneAndUpdate(
-      { companyName },
-      { template, fontSize, fontFamily, pageSize, prescriptionFormat, language },
-      { new: true, upsert: true }
+      condition,
+      update,
+      options
     );
 
-    res.status(201).json(setting);
+    return res.status(200).json({ success: true, data: setting });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error saving prescription settings:", err);
+    return res.status(500).json({ success: false, error: err.message });
   }
 };
-
 
 // Get Settings for a Clinic
 export const getPrescriptionSettings = async (req, res) => {
   try {
-    const setting = await PrescriptionSetting.findOne({ companyName: req.params.companyName });
-
-    if (!setting) {
-      return res.status(404).json({ error: "Settings not found for this company" });
+    const companyId = req.params.companyId;
+    if (!companyId) {
+      return res.status(400).json({ message: "companyId is required" });
     }
 
-    res.json(setting);
+    const setting = await PrescriptionSetting.findOne({ companyId });
+
+    if (!setting) {
+      return res.status(404).json({ message: "Settings not found" });
+    }
+
+    return res.status(200).json({ success: true, data: setting });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error fetching settings:", err);
+    return res.status(500).json({ success: false, error: err.message });
   }
 };
+
 
 export const createPrescriptionSetting = async (req, res) => {
   try {
