@@ -1,4 +1,3 @@
-import PrescriptionSetting from "../models/PrescriptionSetting.js";
 
 // Save or Update Settings
 import PrescriptionSetting from "../models/PrescriptionSetting.js";
