@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const PrescriptionSettingSchema = new mongoose.Schema({
-  companyId: { type: String, required: true }, // ✅ this must exist
+  companyId: { type: String, required: true }, // this must exist
   companyName: { type: String, required: true },
   template: { type: String, required: true },
   fontSize: { type: Number, default: 12 },

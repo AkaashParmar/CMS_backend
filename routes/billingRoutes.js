@@ -3,6 +3,7 @@ import {
   createBilling,
   getBills,
   getBillById,
+  getTotalAmountByCompanyAdmin,
   updateBillStatus,
   deleteBill,
   addBillingItem,
@@ -24,6 +25,7 @@ router.get("/doctor-commission", getDoctorCommissionData);
 //Accountant Dashboard
 router.get("/recent", authenticate, getRecentBills);
 router.get("/stats", authenticate, getBillingStats);
+router.get("/totals/company-admin", getTotalAmountByCompanyAdmin);
 
 router.post("/item/:billId", authenticate, addBillingItem);
 

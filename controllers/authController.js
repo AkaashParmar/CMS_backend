@@ -472,33 +472,41 @@ const getUsersByCompanyAdmin = async (req, res) => {
   }
 };
 
-// get all users created by the logged-in companyAdmin
 const getPatientsInDoctor = async (req, res) => {
   try {
-    let patients;
-
-    if (req.user.role === "doctor") {
-      // Doctors can see all patients
-      patients = await User.find({ role: "patient" })
-        .select("-password")
-        .lean();
-    } else if (req.user.role === "companyAdmin") {
-      // CompanyAdmins see patients they created
-      patients = await User.find({ role: "patient", createdBy: req.user.id })
-        .select("-password")
-        .lean();
-    } else {
+    // Only doctors and superAdmins can fetch this data
+    if (req.user.role !== "doctor" && req.user.role !== "superAdmin") {
       return res.status(403).json({ msg: "Access denied" });
     }
 
-    if (!patients || patients.length === 0) {
-      return res.status(404).json({ msg: "No patients found" });
-    }
+    // Get all companyAdmins (clinics)
+    const clinics = await User.find({ role: "companyAdmin" })
+      .select("-password")
+      .lean();
+
+    // Attach patients to each clinic
+    const clinicWithPatients = await Promise.all(
+      clinics.map(async (clinic) => {
+        const patients = await User.find({
+          role: "patient",
+          createdBy: clinic._id,
+        })
+          .select("-password")
+          .lean();
+
+        return {
+          clinicId: clinic._id,
+          clinicName: clinic.name,
+          patients: patients || [],
+          patientCount: patients.length,
+        };
+      })
+    );
 
     res.status(200).json({
-      msg: "Patients fetched successfully",
-      count: patients.length,
-      patients,
+      msg: "Clinics and patients fetched successfully",
+      count: clinicWithPatients.length,
+      data: clinicWithPatients,
     });
   } catch (err) {
     console.error("Get patients error:", err);
@@ -597,6 +605,73 @@ const updateProfile = async (req, res) => {
 };
 
 
+const getUserCountsPerCompanyAdmin = async (req, res) => {
+  try {
+    const counts = await User.aggregate([
+      // Start with all companyAdmins
+      { $match: { role: "companyAdmin" } },
+      // Lookup users created by this admin
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "createdBy",
+          as: "createdUsers",
+        },
+      },
+      // Add counts per role
+      {
+        $addFields: {
+          patientCount: {
+            $size: {
+              $filter: {
+                input: "$createdUsers",
+                as: "u",
+                cond: { $eq: ["$$u.role", "patient"] },
+              },
+            },
+          },
+          doctorCount: {
+            $size: {
+              $filter: {
+                input: "$createdUsers",
+                as: "u",
+                cond: { $eq: ["$$u.role", "doctor"] },
+              },
+            },
+          },
+          labTechCount: {
+            $size: {
+              $filter: {
+                input: "$createdUsers",
+                as: "u",
+                cond: { $eq: ["$$u.role", "labTechnician"] },
+              },
+            },
+          },
+        },
+      },
+      // Format output
+      {
+        $project: {
+          _id: 0,
+          companyAdminId: "$_id",
+          companyAdminName: "$name",
+          patientCount: 1,
+          doctorCount: 1,
+          labTechCount: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json(counts);
+  } catch (error) {
+    console.error("Error fetching user counts per companyAdmin:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
 // User Roles Distribution (SuperAdmin)
 const getUserStats = async (req, res) => {
   try {
@@ -635,34 +710,51 @@ const getUserStats = async (req, res) => {
 
 const getPatientsForCompanyAdmin = async (req, res) => {
   try {
-    // Check that the requester is superAdmin
+    // Only superAdmin can access
     if (req.user.role !== "superAdmin") {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
+    const companyAdmins = await User.find({ role: "companyAdmin" }).select("name email");
+    const patientCounts = await User.aggregate([
+      { $match: { role: "patient", createdBy: { $ne: null } } },
+      {
+        $group: {
+          _id: "$createdBy",
+          count: { $sum: 1 },
+          patients: {
+            $push: {
+              name: "$name",
+              email: "$email",
+              patientId: "$patientId",
+            },
+          },
+        },
+      },
+    ]);
 
-    const patients = await User.find({ role: "patient" })
-      .populate("createdBy", "name email")
-      .select("name email patientId createdBy");
-
-    res.status(200).json({
-      success: true,
-      patients: patients.map((patient) => ({
-        patientName: patient.name,
-        patientEmail: patient.email,
-        patientId: patient.patientId,
-        companyAdmin: patient.createdBy
-          ? {
-            name: patient.createdBy.name,
-            email: patient.createdBy.email,
-          }
-          : null,
-      })),
+    const patientMap = {};
+    patientCounts.forEach((item) => {
+      patientMap[item._id.toString()] = {
+        count: item.count,
+        patients: item.patients,
+      };
     });
+
+    const result = companyAdmins.map((admin) => ({
+      companyAdminId: admin._id,
+      companyAdminName: admin.name,
+      companyAdminEmail: admin.email,
+      patientCount: patientMap[admin._id.toString()]?.count || 0,
+      patients: patientMap[admin._id.toString()]?.patients || [],
+    }));
+
+    res.status(200).json({ success: true, data: result });
   } catch (error) {
     console.error("Error fetching patients for superAdmin:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 
 const getCompanyAdminRevenue = async (req, res) => {
   try {
@@ -761,6 +853,7 @@ export {
   updateCompanyAdmin,
   getCompanyAdmins,
   getEmployeeCountsByCompanyAdmin,
+  getUserCountsPerCompanyAdmin,
   getCompanyName,
   getCompanyAdminById,
   forgotPassword,

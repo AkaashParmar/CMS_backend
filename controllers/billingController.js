@@ -84,6 +84,50 @@ export const getBillById = async (req, res) => {
   }
 };
 
+export const getTotalAmountByCompanyAdmin = async (req, res) => {
+  try {
+    const totals = await Billing.aggregate([
+      {
+        $group: {
+          _id: "$createdBy", // group by companyAdmin
+          totalAmount: { $sum: "$amount" }, // sum all amounts
+          totalDue: { $sum: "$dueBalance" }, // optional: sum due balances
+          totalBills: { $sum: 1 }, // count bills
+        },
+      },
+      {
+        $lookup: {
+          from: "users", // collection name for User model
+          localField: "_id",
+          foreignField: "_id",
+          as: "companyAdmin",
+        },
+      },
+      {
+        $unwind: {
+          path: "$companyAdmin",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          companyAdminId: "$_id",
+          companyAdminName: "$companyAdmin.name",
+          totalAmount: 1,
+          totalDue: 1,
+          totalBills: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json(totals);
+  } catch (error) {
+    console.error("Error fetching total amount per companyAdmin:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 
 //Update bill status (Paid/Unpaid)
 export const updateBillStatus = async (req, res) => {
