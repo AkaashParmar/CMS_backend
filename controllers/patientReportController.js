@@ -273,26 +273,26 @@ export const deleteReport = async (req, res) => {
   }
 };
 
-export const getReportsPerWeek = async (req, res) => {
+export const getReportsPerMonth = async (req, res) => {
   try {
-    const reportsPerWeek = await PatientReport.aggregate([
+    const reportsPerMonth = await PatientReport.aggregate([
       {
         $group: {
           _id: {
             year: { $year: "$createdAt" },
-            week: { $isoWeek: "$createdAt" },
+            month: { $month: "$createdAt" }, 
           },
           count: { $sum: 1 },
         },
       },
       {
-        $sort: { "_id.year": 1, "_id.week": 1 },
+        $sort: { "_id.year": 1, "_id.month": 1 },
       },
     ]);
 
-    res.status(200).json(reportsPerWeek);
+    res.status(200).json(reportsPerMonth);
   } catch (error) {
-    console.error("Error fetching reports per week:", error);
+    console.error("Error fetching reports per month:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

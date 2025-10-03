@@ -5,7 +5,7 @@ import {
   getReportById,
   updateReport,
   deleteReport,
-  getReportsPerWeek,
+  getReportsPerMonth,
   getMyReports,
 } from "../controllers/patientReportController.js";
 import authenticate from "../middleware/authmiddleware.js";
@@ -19,7 +19,7 @@ router.get("/", authenticate, getReports);
 router.get("/:id", authenticate, getReportById);
 router.put("/:id", authenticate, updateReport);
 router.delete("/:id", authenticate, deleteReport);
-router.get("/stats/weekly", authenticate, getReportsPerWeek);
+router.get("/stats/monthly", authenticate, getReportsPerMonth);
 router.get("/getreports", authenticate, getMyReports);
 
 export default router;
