@@ -6,6 +6,7 @@ import sendEmail from "../utils/sendEmail.js";
 import cloudinary from "../config/cloudinary-config.js";
 import fs from "fs";
 import Billing from '../models/Billing.js';
+import Appointment from "../models/Appointment.js";
 import mongoose from "mongoose";
 
 const register = async (req, res) => {
@@ -474,43 +475,169 @@ const getUsersByCompanyAdmin = async (req, res) => {
 
 const getPatientsInDoctor = async (req, res) => {
   try {
-    // Only doctors and superAdmins can fetch this data
-    if (req.user.role !== "doctor" && req.user.role !== "superAdmin") {
-      return res.status(403).json({ msg: "Access denied" });
+    const { role, id } = req.user;
+
+    if (role === "doctor") {
+      const patients = await User.find({ role: "patient" })
+        .select("-password")
+        .lean();
+
+      if (!patients.length) {
+        return res.status(404).json({ msg: "No patients found" });
+      }
+
+      return res.status(200).json({
+        msg: "All patients fetched successfully (doctor access)",
+        count: patients.length,
+        data: patients,
+      });
     }
 
-    // Get all companyAdmins (clinics)
-    const clinics = await User.find({ role: "companyAdmin" })
-      .select("-password")
-      .lean();
+    if (role === "companyAdmin") {
+      const patients = await User.find({ role: "patient", createdBy: id })
+        .select("-password")
+        .lean();
 
-    // Attach patients to each clinic
-    const clinicWithPatients = await Promise.all(
-      clinics.map(async (clinic) => {
-        const patients = await User.find({
-          role: "patient",
-          createdBy: clinic._id,
+      return res.status(200).json({
+        msg: "Your clinic patients fetched successfully",
+        count: patients.length,
+        data: patients,
+      });
+    }
+
+    if (role === "superAdmin") {
+      const clinics = await User.find({ role: "companyAdmin" })
+        .select("-password")
+        .lean();
+
+      const clinicWithPatients = await Promise.all(
+        clinics.map(async (clinic) => {
+          const patients = await User.find({
+            role: "patient",
+            createdBy: clinic._id,
+          })
+            .select("-password")
+            .lean();
+
+          return {
+            clinicId: clinic._id,
+            clinicName: clinic.name,
+            patients: patients || [],
+            patientCount: patients.length,
+          };
         })
-          .select("-password")
-          .lean();
+      );
 
-        return {
-          clinicId: clinic._id,
-          clinicName: clinic.name,
-          patients: patients || [],
-          patientCount: patients.length,
-        };
-      })
-    );
-
-    res.status(200).json({
-      msg: "Clinics and patients fetched successfully",
-      count: clinicWithPatients.length,
-      data: clinicWithPatients,
-    });
+      return res.status(200).json({
+        msg: "Clinics and patients fetched successfully (superAdmin access)",
+        count: clinicWithPatients.length,
+        data: clinicWithPatients,
+      });
+    }
+    return res.status(403).json({ msg: "Access denied" });
   } catch (err) {
     console.error("Get patients error:", err);
     res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
+
+const getDoctorsByCompanyAdminId = async (req, res) => {
+  try {
+    const { role, _id } = req.user; // from token
+    const { companyAdminId: paramCompanyAdminId } = req.params;
+
+    // Only companyAdmin or superAdmin can access
+    if (role !== "companyAdmin" && role !== "superAdmin") {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    // Determine which companyAdminId to use
+    let companyAdminId;
+    if (role === "superAdmin") {
+      if (!paramCompanyAdminId) {
+        return res.status(400).json({
+          success: false,
+          message: "CompanyAdmin ID is required for superAdmin",
+        });
+      }
+      companyAdminId = paramCompanyAdminId;
+    } else {
+      companyAdminId = _id; // companyAdmin can only see their own doctors
+    }
+
+    // Build doctor query
+    let query = { role: "doctor" };
+    if (mongoose.Types.ObjectId.isValid(companyAdminId)) {
+      query.createdBy = new mongoose.Types.ObjectId(companyAdminId);
+    } else {
+      query["profile.companyAdminId"] = companyAdminId;
+    }
+
+    // Fetch doctors
+    const doctors = await User.find(query).select(
+      "name email registrationNo createdBy profile"
+    );
+
+    if (!doctors.length) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        message: "No doctors found for this company admin",
+        data: [],
+      });
+    }
+
+    // Fetch appointments for these doctors
+    const doctorIds = doctors.map((doc) => doc._id);
+    const appointments = await Appointment.find({ doctor: { $in: doctorIds } })
+      .populate("patient", "name email patientId profile") // populate patient info
+      .populate("doctor", "name registrationNo") // optional
+      .lean();
+
+    // Map doctor -> appointments & patients
+    const doctorMap = {};
+    doctors.forEach((doc) => {
+      doctorMap[doc._id.toString()] = {
+        doctorId: doc._id,
+        name: doc.name,
+        registrationNo: doc.registrationNo,
+        profile: doc.profile,
+        appointmentCount: 0,
+        patients: [],
+      };
+    });
+
+    appointments.forEach((app) => {
+      const docId = app.doctor._id.toString();
+      if (doctorMap[docId]) {
+        doctorMap[docId].appointmentCount += 1;
+        doctorMap[docId].patients.push({
+          patientId: app.patient._id,
+          name: app.patient.name,
+          email: app.patient.email,
+          patientCode: app.patient.patientId,
+          appointmentDate: app.date,
+          appointmentTime: app.time,
+          status: app.status,
+        });
+      }
+    });
+
+    const result = Object.values(doctorMap);
+
+    return res.status(200).json({
+      success: true,
+      count: result.length,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error fetching doctors with appointments:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 
@@ -861,6 +988,7 @@ export {
   createUserByCompanyAdmin,
   getUsersByCompanyAdmin,
   getPatientsInDoctor,
+  getDoctorsByCompanyAdminId,
   deleteUserByCompanyAdmin,
   getUserProfileById,
   updateProfile,

@@ -23,6 +23,7 @@ import medicalServiceRoutes from './routes/medicalServiceRoutes.js';
 import billRoutes from "./routes/billRoutes.js";
 import PendingTaskRoutes from "./routes/pendingTaskRoutes.js";
 import prescriptionsettingRoutes from "./routes/prescriptionsettingRoutes.js";
+import doctorRoutes from "./routes/doctorRoutes.js"
 
 
 
@@ -62,6 +63,7 @@ app.use('/api/medical', medicalServiceRoutes);
 app.use("/api/bills", billRoutes);
 app.use("/api/pendingTask", PendingTaskRoutes);
 app.use("/api/prescriptionsettings", prescriptionsettingRoutes);
+app.use("/api/doctor", doctorRoutes);
 
 
 

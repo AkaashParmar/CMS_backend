@@ -85,6 +85,13 @@ const userSchema = new mongoose.Schema(
       cardLimit: Number,
       cardStatus: String,
       cardExpiry: Date,
+      charges: Number,
+      holidays: [
+        {
+          date: Date,
+          reason: String, 
+        },
+      ],
     },
 
     resetPasswordToken: String,
