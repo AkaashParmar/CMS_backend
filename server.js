@@ -24,6 +24,8 @@ import billRoutes from "./routes/billRoutes.js";
 import PendingTaskRoutes from "./routes/pendingTaskRoutes.js";
 import prescriptionsettingRoutes from "./routes/prescriptionsettingRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js"
+import doctorPerformanceRoutes from "./routes/doctorPerformanceRoutes.js";
+import appointmentRequestRoutes from "./routes/requestRoutes.js";
 
 
 
@@ -64,6 +66,9 @@ app.use("/api/bills", billRoutes);
 app.use("/api/pendingTask", PendingTaskRoutes);
 app.use("/api/prescriptionsettings", prescriptionsettingRoutes);
 app.use("/api/doctor", doctorRoutes);
+app.use("/api/doctor-performance", doctorPerformanceRoutes);
+app.use("/api/requests", appointmentRequestRoutes);
+
 
 
 
