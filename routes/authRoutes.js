@@ -12,6 +12,7 @@ import {
   getUserCountsPerCompanyAdmin,
   getCompanyName,
   getPatientsInDoctor,
+  getDoctorsByCompanyAdminId,
   deleteUserByCompanyAdmin,
   getUserProfileById,
   forgotPassword,
@@ -82,11 +83,13 @@ router.get("/getProfile", authenticate, getUsersByCompanyAdmin);
 router.get("/getProfile/:id", authenticate, getUserProfileById);
 
 router.get("/getPatients", authenticate, getPatientsInDoctor);
+router.get("/doctors/:companyAdminId", authenticate, getDoctorsByCompanyAdminId);
+
 
 router.delete(
   "/delete-user/:id",
   authenticate,
-  authorizeRoles("companyAdmin"),
+  authorizeRoles("companyAdmin"),        
   deleteUserByCompanyAdmin
 );
 

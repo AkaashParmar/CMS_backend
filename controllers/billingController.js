@@ -54,7 +54,7 @@ export const getBills = async (req, res) => {
     const bills = await Billing.find()
       .sort({ createdAt: -1 })
       .populate("patientId")
-      .populate("doctor", "name email profile.phoneNumber");
+      .populate("doctor", "name email profile.phoneNumber profile.department");
 
     res.json(bills);
   } catch (err) {
@@ -145,6 +145,65 @@ export const updateBillStatus = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+
+export const getRevenueByDepartment = async (req, res) => {
+  try {
+    // 1️⃣ Aggregate billing data grouped by doctor
+    const revenueByDoctor = await Billing.aggregate([
+      {
+        $group: {
+          _id: "$doctor",
+          totalRevenue: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    if (!revenueByDoctor.length) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // 2️⃣ Get all doctors’ department info
+    const doctors = await User.find(
+      { _id: { $in: revenueByDoctor.map((r) => r._id) } },
+      { name: 1, "profile.department": 1 }
+    );
+
+    // 3️⃣ Combine revenue with doctor department
+    const departmentRevenueMap = {};
+
+    revenueByDoctor.forEach((r) => {
+      const doctor = doctors.find((d) => d._id.toString() === r._id.toString());
+      const department = doctor?.profile?.department || "Unknown Department";
+
+      if (!departmentRevenueMap[department]) {
+        departmentRevenueMap[department] = 0;
+      }
+
+      departmentRevenueMap[department] += r.totalRevenue;
+    });
+
+    // 4️⃣ Convert to chart-friendly array
+    const result = Object.entries(departmentRevenueMap).map(
+      ([department, revenue]) => ({
+        department,
+        revenue,
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error fetching revenue by department:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching revenue by department",
+    });
+  }
+};
+
 
 
 // Delete bill
