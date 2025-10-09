@@ -1,7 +1,7 @@
 import Appointment from "../models/Appointment.js";
 import User from "../models/User.js";
 
-// ✅ Create a new appointment request
+// Create a new appointment request
 export const createAppointment = async (req, res) => {
   try {
     const {
