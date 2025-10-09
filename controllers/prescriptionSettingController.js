@@ -1,4 +1,4 @@
-
+import PrescriptionSetting from "../models/PrescriptionSetting.js"
 // Save or Update Settings
 export const savePrescriptionSettings = async (req, res) => {
   try {
