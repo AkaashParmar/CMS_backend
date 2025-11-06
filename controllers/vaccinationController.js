@@ -141,14 +141,14 @@ export const getDoses = async (req, res) => {
   try {
     const doses = await VaccinationDose.find()
       .populate("patient", "name patientId")
-      .populate("administeredBy", "name registrationNo")
+      .populate("administeredBy", "name registrationNo profile.department")
       .populate("clinic", "clinicName");
 
     const formatted = doses.map(d => ({
       ...d.toObject(),
       date: d.date.toISOString().split("T")[0],
       patientName: d.patient?.name || "-",
-      doctorName: d.administeredBy?.name || "-",
+      doctorName: d.administeredBy?.profile?.department || "-",
       clinicName: d.clinic?.clinicName || "-",
     }));
 

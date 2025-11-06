@@ -18,7 +18,11 @@ export const createClinic = async (req, res) => {
 // Get all clinics
 export const getClinics = async (req, res) => {
   try {
-    const clinics = await Clinic.find().populate("primaryDoctor associatedDoctors panelDoctors");
+    const clinics = await Clinic.find()
+      .populate("primaryDoctor", "name email profile.phoneNumber profile.department")
+      .populate("associatedDoctors", "name email profile.phoneNumber profile.department")
+      .populate("panelDoctors", "name email profile.phoneNumber profile.department");
+
     res.status(200).json(clinics);
   } catch (error) {
     res.status(500).json({ message: "Error fetching clinics", error: error.message });
@@ -28,8 +32,13 @@ export const getClinics = async (req, res) => {
 // Get single clinic
 export const getClinicById = async (req, res) => {
   try {
-    const clinic = await Clinic.findById(req.params.id).populate("primaryDoctor associatedDoctors panelDoctors");
+    const clinic = await Clinic.findById(req.params.id)
+      .populate("primaryDoctor", "name email profile.phoneNumber profile.department")
+      .populate("associatedDoctors", "name email profile.phoneNumber profile.department")
+      .populate("panelDoctors", "name email profile.phoneNumber profile.department");
+
     if (!clinic) return res.status(404).json({ message: "Clinic not found" });
+
     res.status(200).json(clinic);
   } catch (error) {
     res.status(500).json({ message: "Error fetching clinic", error: error.message });

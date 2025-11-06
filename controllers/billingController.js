@@ -384,6 +384,7 @@ export const getDoctorCommissionData = async (req, res) => {
       {
         $addFields: {
           doctorName: "$doctorInfo.name",
+          doctorDepartment: "$doctorInfo.profile.department", // 👈 Add department
           doctorShare: { $multiply: ["$totalRevenue", 0.7] },
           clinicCommission: { $multiply: ["$totalRevenue", 0.3] },
           monthNum: "$_id.month",
@@ -394,6 +395,7 @@ export const getDoctorCommissionData = async (req, res) => {
         $project: {
           _id: 0,
           doctorName: 1,
+          doctorDepartment: 1, // 👈 Include department
           monthNum: 1,
           year: 1,
           doctorShare: 1,
@@ -412,20 +414,27 @@ export const getDoctorCommissionData = async (req, res) => {
     // --- Commission breakdown data
     const commissionData = {};
     billingStats.forEach((entry) => {
-      const { doctorName, month, doctorShare, clinicCommission } = entry;
+      const { doctorName, doctorDepartment, month, doctorShare, clinicCommission } = entry;
       if (!commissionData[doctorName]) {
-        commissionData[doctorName] = [];
+        commissionData[doctorName] = {
+          department: doctorDepartment, // 👈 store department
+          data: [],
+        };
       }
-      commissionData[doctorName].push({ month, doctorShare, clinicCommission });
+      commissionData[doctorName].data.push({ month, doctorShare, clinicCommission });
     });
 
     // --- Revenue bar chart data
     const doctorRevenue = Object.keys(commissionData).map((doctor) => {
-      const total = commissionData[doctor].reduce(
+      const total = commissionData[doctor].data.reduce(
         (sum, item) => sum + item.doctorShare + item.clinicCommission,
         0
       );
-      return { doctor, revenue: Math.round(total) };
+      return {
+        doctor,
+        department: commissionData[doctor].department, // 👈 include department here too
+        revenue: Math.round(total),
+      };
     });
 
     // --- Efficiency (mocked based on revenue threshold)
@@ -447,7 +456,7 @@ export const getDoctorCommissionData = async (req, res) => {
 
     res.status(200).json({
       msg: `Doctor report for ${doctor}`,
-      doctorRevenue,
+      doctorRevenue, // now includes department
       doctorEfficiency,
       commissionData,
     });
@@ -456,6 +465,7 @@ export const getDoctorCommissionData = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
+
 
 export const revenuePerMonth = async (req, res) => {
   try {
